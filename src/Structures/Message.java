@@ -1,14 +1,16 @@
 package Structures;
 
+import java.net.InetAddress;
+
 // class represents message consisted of app launch information (host address and id)
 public class Message {
+    // TODO refactor field host address: set string representation
     // ip address of host where app is working
-    private String hostAddress;
+    private InetAddress hostAddress;
     // app launch id - unique for different app launch on the same host
     private long launchId;
-
-    // constructor (for output message)
-    public Message(String address, long id) {
+// constructor (for output message)
+    public Message(InetAddress address, long id) {
         hostAddress = address;
         launchId = id;
     }
@@ -18,7 +20,7 @@ public class Message {
         return launchId;
     }
     // get host address value
-    public String getHostAddress() {
+    public InetAddress getHostAddress() {
         return hostAddress;
     }
 }

@@ -1,7 +1,6 @@
 package Structures;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 public class Host {
     // time counter field; need to check is host 'online'
@@ -10,22 +9,15 @@ public class Host {
     private InetAddress hostAddress;
     // unique id
     private long id;
-
-    // constructor
-    public Host(String address) {
-        try {
-            // try to init host address
-            hostAddress = InetAddress.getByName(address);
-        } catch (UnknownHostException e) {
-            System.err.println("Invalid host address:");
-            e.printStackTrace();
-
-            System.exit(1);
-        }
+// constructor
+    public Host(InetAddress address, long id) {
+        hostAddress = address;
         // init id as current time in millis
-        id = System.currentTimeMillis();
+        this.id = id;
+        // init time counter
+        timeCounter = System.currentTimeMillis();
     }
-    // set counter value method
+// set counter value method
     public void setTimeCounter(long count) {
         timeCounter = count;
     }

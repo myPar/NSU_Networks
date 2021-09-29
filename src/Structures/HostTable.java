@@ -1,5 +1,6 @@
 package Structures;
 
+import java.net.InetAddress;
 import java.util.HashMap;
 
 // this structure represents thread save set of hosts in group
@@ -14,18 +15,16 @@ public class HostTable {
         maxResponseTime = time;
     }
     // adding new host to the table
-    synchronized void addHost(String hostAddress) {
+    synchronized void addHost(InetAddress address, long id) {
         // create host
-        Host host = new Host(hostAddress);
-        // init time counter
-        host.setTimeCounter(System.currentTimeMillis());
+        Host host = new Host(address, id);
         // create key
         String key = host.getHostAddress() + host.getId();
         // add host to table
         hostMap.put(key, host);
     }
     // checking time counter for all hosts in the table; removing hosts with time counter exceeded
-    synchronized void checkAllHostsTimeCounter() {
+    public synchronized void checkAllHostsTimeCounter() {
         hostMap.forEach((key, value) -> {
             if (System.currentTimeMillis() - value.getTimeCounter() > maxResponseTime) {
                 // response time exceeded - host disconnected. remove it from table

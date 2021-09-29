@@ -6,15 +6,13 @@ import java.io.IOException;
 import java.net.*;
 
 public class MySocket {
-    // TODO 1. write exception types and handling for each of it : DONE
-    //      2. write datagram sending and receiving (send, read methods in MySocket class)
-    //      3. write app core (main algorithm of work)
-    //      4. write time counter checker
-    // Socket exception class
+// Socket exception class
     public static class SocketException extends Exception {
         // exception type enum
         public enum Type{
-            SOCKET_CREATE("SOCKET_CREATE"), JOIN("JOIN"), GET_LOCAL_ADDRESS("GET_LOCAL_ADDRESS");
+            SOCKET_CREATE("SOCKET_CREATE"), JOIN("JOIN"), GET_LOCAL_ADDRESS("GET_LOCAL_ADDRESS"),
+            SEND("SEND"), RECEIVE("RECEIVE");
+            // string representation field
             private final String message;
             // enum constructor
             Type(String m) {message = m;}
@@ -36,9 +34,7 @@ public class MySocket {
             printStackTrace();
         }
     }
-    // network type enum
-    public enum NetworkType{IPV6, IPV4};
-
+// fields
     // multi-cast socket fo message forwarding
     private MulticastSocket socket;
     // address of multi-cast group
@@ -46,11 +42,9 @@ public class MySocket {
     // port number
     private int port;
     // message size
-    private int messageSize;
-    // own hostAddress
-    private InetAddress selfAddress;
-
-    MySocket(InetAddress gAddress, int p, NetworkType type) throws SocketException {
+    private final int maxMessageSize = 1000;
+// constructor
+    public MySocket(InetAddress gAddress, int p) throws SocketException {
         groupAddress = gAddress;
         port = p;
         // try to create socket
@@ -60,35 +54,56 @@ public class MySocket {
         } catch (IOException e) {
             throw new SocketException(SocketException.Type.SOCKET_CREATE, "can't create socket on port - " + port);
         }
-        // try join to multi-cast group
+        // try to join to multi-cast group
         try {
             socket.joinGroup(groupAddress);
         }
         catch (IOException e) {
             throw new SocketException(SocketException.Type.JOIN, "can't join to group with address - " + gAddress);
         }
-        // check network type
-        if (type == NetworkType.IPV4) {
-            try {
-                selfAddress = Inet4Address.getLocalHost();
-            } catch (UnknownHostException e) {
-                throw new SocketException(SocketException.Type.GET_LOCAL_ADDRESS, "can't get local host address; type - IPv4");
-            }
-        }
-        else if (type == NetworkType.IPV6){
-            try {
-                selfAddress = Inet6Address.getLocalHost();
-            } catch (UnknownHostException e) {
-                throw new SocketException(SocketException.Type.GET_LOCAL_ADDRESS, "can't get local host address; type - IPv6");
-            }
-        } else {assert false;}
     }
     // send message method
-    void sendMessage(Message message) {
-
+    void sendMessage(Message message) throws SocketException {
+        // get message data
+        String messageData = message.getHostAddress() + " " + message.getLaunchId();
+        // create datagram
+        DatagramPacket packet = new DatagramPacket(messageData.getBytes(), messageData.length(), groupAddress, port);
+        // send datagram
+        try {
+            socket.send(packet);
+        } catch (IOException e) {
+            throw new SocketException(SocketException.Type.SEND, "Can't send datagram packet. address: " +
+                                      groupAddress.getHostAddress() + ", port: " + port + ", length: " + messageData.length());
+        }
     }
     // get message from socket
-    Message getMessage() {
-        return null;
+    Message getMessage() throws SocketException {
+        byte[] buf = new byte[maxMessageSize];
+        DatagramPacket receivePacket = new DatagramPacket(buf, buf.length);
+        String[] data;
+        // receive datagram
+        try {
+            socket.receive(receivePacket);
+            data = (new String(receivePacket.getData())).split(" ");
+        } catch (IOException e) {
+            throw new SocketException(SocketException.Type.RECEIVE, "can't receive datagram packet: " +
+                    groupAddress.getHostAddress() + ", port: " + port + ", buff size - " + maxMessageSize);
+        }
+        // check IP in received message
+        InetAddress address;
+        try {
+            address = InetAddress.getByName(data[0]);
+        } catch (UnknownHostException e) {
+            throw new SocketException(SocketException.Type.RECEIVE, "Invalid IP address: " + data[0] + " in received message");
+        }
+        // check id in received message
+        long id;
+        try {
+            id = Long.parseLong(data[1]);
+        } catch (NumberFormatException e) {
+            throw new SocketException(SocketException.Type.RECEIVE, "Invalid id: " + data[1] + " in received message");
+        }
+        // return received message
+        return new Message(address, id);
     }
 }
