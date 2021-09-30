@@ -6,11 +6,11 @@ import java.net.InetAddress;
 public class Message {
     // TODO refactor field host address: set string representation
     // ip address of host where app is working
-    private InetAddress hostAddress;
+    private String hostAddress;
     // app launch id - unique for different app launch on the same host
     private long launchId;
 // constructor (for output message)
-    public Message(InetAddress address, long id) {
+    public Message(String address, long id) {
         hostAddress = address;
         launchId = id;
     }
@@ -20,7 +20,7 @@ public class Message {
         return launchId;
     }
     // get host address value
-    public InetAddress getHostAddress() {
+    public String getHostAddress() {
         return hostAddress;
     }
 }

@@ -63,7 +63,7 @@ public class MySocket {
         }
     }
     // send message method
-    void sendMessage(Message message) throws SocketException {
+    public void sendMessage(Message message) throws SocketException {
         // get message data
         String messageData = message.getHostAddress() + " " + message.getLaunchId();
         // create datagram
@@ -77,7 +77,7 @@ public class MySocket {
         }
     }
     // get message from socket
-    Message getMessage() throws SocketException {
+    public Message getMessage() throws SocketException {
         byte[] buf = new byte[maxMessageSize];
         DatagramPacket receivePacket = new DatagramPacket(buf, buf.length);
         String[] data;
@@ -90,9 +90,9 @@ public class MySocket {
                     groupAddress.getHostAddress() + ", port: " + port + ", buff size - " + maxMessageSize);
         }
         // check IP in received message
-        InetAddress address;
+        String strAddress = data[0];
         try {
-            address = InetAddress.getByName(data[0]);
+            InetAddress address = InetAddress.getByName(strAddress);
         } catch (UnknownHostException e) {
             throw new SocketException(SocketException.Type.RECEIVE, "Invalid IP address: " + data[0] + " in received message");
         }
@@ -104,6 +104,6 @@ public class MySocket {
             throw new SocketException(SocketException.Type.RECEIVE, "Invalid id: " + data[1] + " in received message");
         }
         // return received message
-        return new Message(address, id);
+        return new Message(strAddress, id);
     }
 }

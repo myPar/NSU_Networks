@@ -1,6 +1,5 @@
 package Structures;
 
-import java.net.InetAddress;
 import java.util.HashMap;
 
 // this structure represents thread save set of hosts in group
@@ -15,7 +14,7 @@ public class HostTable {
         maxResponseTime = time;
     }
     // adding new host to the table
-    synchronized void addHost(InetAddress address, long id) {
+    synchronized void addHost(String address, long id) {
         // create host
         Host host = new Host(address, id);
         // create key
