@@ -23,4 +23,8 @@ public class Message {
     public String getHostAddress() {
         return hostAddress;
     }
+    // get host address + id string (get host key)
+    public String getHostKey() {
+        return hostAddress + launchId;
+    }
 }

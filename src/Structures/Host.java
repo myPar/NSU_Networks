@@ -1,6 +1,6 @@
 package Structures;
 
-public class Host {
+class Host {
     // time counter field; need to check is host 'online'
     private long timeCounter;
     // host address (ipv4/ipv6)
@@ -8,7 +8,7 @@ public class Host {
     // unique id
     private long id;
 // constructor
-    public Host(String address, long id) {
+    Host(String address, long id) {
         hostAddress = address;
         // init id as current time in millis
         this.id = id;
@@ -16,20 +16,20 @@ public class Host {
         timeCounter = System.currentTimeMillis();
     }
 // set counter value method
-    public void setTimeCounter(long count) {
+    void setTimeCounter(long count) {
         timeCounter = count;
     }
 // getters:
     // returns text representation of host address
-    public String getHostAddress() {
+    String getHostAddress() {
         return hostAddress;
     }
     // get host id
-    public long getId() {
+    long getId() {
         return id;
     }
     // get time counter
-    public long getTimeCounter() {
+    long getTimeCounter() {
         return timeCounter;
     }
 }

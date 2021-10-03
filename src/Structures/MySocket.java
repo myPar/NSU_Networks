@@ -65,7 +65,7 @@ public class MySocket {
     // send message method
     public void sendMessage(Message message) throws SocketException {
         // get message data
-        String messageData = message.getHostAddress() + " " + message.getLaunchId();
+        String messageData = message.getHostAddress() + " " + message.getLaunchId() + " ";
         // create datagram
         DatagramPacket packet = new DatagramPacket(messageData.getBytes(), messageData.length(), groupAddress, port);
         // send datagram
