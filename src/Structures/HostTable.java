@@ -1,6 +1,8 @@
 package Structures;
 
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
 
 // this structure represents thread save set of hosts in group
 public class HostTable {
@@ -25,6 +27,9 @@ public class HostTable {
         Host host = new Host(address, id);
         // create key
         String key = host.getHostAddress() + host.getId();
+        // set time counter
+        host.setTimeCounter(System.currentTimeMillis());
+
         // add host to table
         hostMap.put(key, host);
         // display new host
@@ -37,15 +42,18 @@ public class HostTable {
     }
     // checking time counter for all hosts in the table; removing hosts with time counter exceeded
     public synchronized void checkAllHostsTimeCounter() {
-        hostMap.forEach((key, value) -> {
-            if (System.currentTimeMillis() - value.getTimeCounter() > maxResponseTime) {
+        Iterator<Entry<String, Host>> iterator = hostMap.entrySet().iterator();
+
+        // iteration on collection with possible item removing
+        while (iterator.hasNext()) {
+            Entry<String, Host> item = iterator.next();
+            if (System.currentTimeMillis() - item.getValue().getTimeCounter() > maxResponseTime) {
                 // response time exceeded - host disconnected. remove it from table
-                hostMap.remove(key);
-                //System.out.println(value.getHostAddress() + " " + value.getId() + ": disconnected");
+                iterator.remove();
                 // display removing
-                view.displayHostRemove(key);
+                view.displayHostRemove(item.getKey());
             }
-        });
+        }
     }
     // check does table contains host with specified name
     public synchronized boolean contains(String hostName) {
