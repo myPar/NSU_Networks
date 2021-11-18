@@ -4,8 +4,8 @@ import java.util.Arrays;
 
 // class represents auxiliary data class: classes, enums which are used in class Task
 class Data {
-    // exception class of data transfer
-    static class DataTransferDescription {
+    // description of data transfer class
+    static class DataTransferDescription extends Throwable {
         private TraverseStatus status;
         private String description;
         // constructor:
@@ -20,12 +20,15 @@ class Data {
             }
             return "Data transfer exception of type: " + status.getValue() + ": " + description;
         }
+        // get status method
+        TraverseStatus getStatus() {return status;}
     }
     // enum represents data transfer status
     enum TraverseStatus {
         SUCCESS_TRAVERSE("SUCCESS TRAVERSE"),
         INVALID_FILE_DATA("INVALID FILE DATA"),
         INVALID_FILE_HEADER("INVALID FILE HEADER"),
+        OUTPUT_FILE_EXCEPTION("OUTPUT FILE EXCEPTION"),
         SOCKET_EXCEPTION("SOCKET EXCEPTION");
         private String value;
 
@@ -49,19 +52,19 @@ class Data {
         // fields:
         private int headerSize;
         private String fileName;
-        private int expectedFileSize;
+        private long expectedFileSize;
         private final String delimiter = "\\\\";
         private final int minTokenCount = 4;
 
         // field getters:
-        int getExpectedFileSize() {return expectedFileSize;}
+        long getExpectedFileSize() {return expectedFileSize;}
         String getFileName() {return fileName;}
         int getHeaderSize() {return headerSize;}
 
-        // constructor
-        DataHeader(byte[] data, int maxHeaderSize) throws HeaderException {
+        // constructor (expected that ALL buffer contains data, no uninitialized bytes)
+        DataHeader(byte[] data) throws HeaderException {
             // get file name (1. convert necessary bytes to String 2. split by delimiter):
-            String byteString = new String(Arrays.copyOf(data, maxHeaderSize));
+            String byteString = new String(data);
             String[] strArr = byteString.split(delimiter);
 
             // check header structure (expected: name + delimiter + size + delimiter + data):
@@ -76,9 +79,9 @@ class Data {
             }
             // read expected file size:
             String intStr = strArr[2];
-            int size;
+            long size;
             try {
-                size = Integer.parseInt(intStr);
+                size = Long.parseLong(intStr);
             }
             catch (NumberFormatException e) {
                 throw new HeaderException(HeaderException.Type.LENGTH);
