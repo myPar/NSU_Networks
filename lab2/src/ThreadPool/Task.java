@@ -6,11 +6,14 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Arrays;
 
+import Core.Server.ServerException;
 import ThreadPool.Data.TraverseStatus;
 import ThreadPool.Data.DataTransferDescription;
 import ThreadPool.Data.DataHeader;
+import Tools.ClientNotifier;
 import Tools.FileWorker;
 import Tools.HeaderReader;
+import UI.GUI;
 
 public class Task implements Runnable {
 // fields:
@@ -34,12 +37,15 @@ public class Task implements Runnable {
     private long totalFileSize;
     // expected file size
     private long expectedFileSize;
+    // GUI
+    private GUI gui;
 // constructor:
-    public Task(Socket socket, String fileName, int clientId, int maxBufferSize) {
+    public Task(Socket socket, String fileName, int clientId, int maxBufferSize, GUI gui) {
         clientSocket = socket;
         outputDirName = fileName;
         this.clientId = clientId;
         this.maxBufferSize = maxBufferSize;
+        this.gui = gui;
         socketInStream = null;
         socketOutStream = null;
     }
@@ -54,8 +60,22 @@ public class Task implements Runnable {
                         "wrong actual file size:" + totalFileSize + ", expected: " + expectedFileSize);
             }
         }
-        // TODO notify clien
-        // TODO close connection
+        ClientNotifier notifier = new ClientNotifier(socketOutStream);
+        try {
+            // notify client
+            notifier.notifyClient(resultDescription);
+        } catch (ServerException e) {
+            gui.displayServerMessage(e.getMessage());
+        }
+        // display data transfer status on Server side
+        gui.displayTraverseStatus(resultDescription, clientId);
+        // close connection:
+        try {
+            clientSocket.close();
+        } catch (IOException e) {
+            gui.displayServerMessage("can't close socket for client " + clientId);
+        }
+        gui.displayClientDisconnecting(clientId);
     }
     // get header data buffer; returns actual read byte count
     private int writeHeaderDataBuffer(byte[] buffer) throws DataTransferDescription {
@@ -107,7 +127,7 @@ public class Task implements Runnable {
             worker.writeData(remainData, offset, count);
             // read file data from socket:
             while (true) {
-                int readByteCount = 0;
+                int readByteCount;
                 try {
                     readByteCount = socketInStream.read(buffer);
                     // the stream is over
@@ -154,15 +174,15 @@ public class Task implements Runnable {
         }
         // init variables:
         byte[] receiveDataBuffer = new byte[maxBufferSize];
-        byte[] initDataBuffer = null;
-        DataHeader header = null;
+        byte[] initDataBuffer;
+        DataHeader header;
         int readByteCount;
 
         // header fields values variables:
-        int headerSize = 0;
-        String outputFileName = "";
+        int headerSize;
+        String outputFileName;
 
-        int dataSize = 0;
+        int dataSize;
         try {
             // read data header: file name + expected file size:
             dataSize = writeHeaderDataBuffer(receiveDataBuffer);

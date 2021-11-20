@@ -2,6 +2,7 @@ package Core;
 
 import ThreadPool.ThreadPool;
 import ThreadPool.Task;
+import UI.GUI;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -12,11 +13,11 @@ import java.nio.file.Paths;
 
 public class Server {
 // Server executing exception class:
-    private static class ServerException extends Exception {
+    public static class ServerException extends Exception {
         private ServerExceptionType exceptionType;
         private String description;
 
-        ServerException(ServerExceptionType type, String dscr) {
+        public ServerException(ServerExceptionType type, String dscr) {
             exceptionType = type;
             description = dscr;
         }
@@ -26,9 +27,10 @@ public class Server {
         }
     }
 // Server exception type enum:
-    private enum ServerExceptionType {
+    public enum ServerExceptionType {
         CONFIGURATOR_EXCEPTION("CONFIGURATOR EXCEPTION"),
-        PAIR_CONTROLLER_EXCEPTION("PAIR CONTROLLER EXCEPTION");
+        PAIR_CONTROLLER_EXCEPTION("PAIR CONTROLLER EXCEPTION"),
+        CLIENT_RESPONDER_EXCEPTION("CLIENT RESPONDER EXCEPTION");
         private String value;
 
         ServerExceptionType(String value) {
@@ -84,10 +86,10 @@ public class Server {
                 try {
                     clientSocket = acceptClient();
                 } catch (ServerException e) {
-                    // TODO implement exception handling
+                    gui.displayServerMessage(e.getExceptionMessage());
                 }
                 // create new task and add it to Thread Pool:
-                Task newTask = new Task(clientSocket, saveDstDir, currentClientId, MAX_BUFFER_SIZE);
+                Task newTask = new Task(clientSocket, saveDstDir, currentClientId, MAX_BUFFER_SIZE, gui);
                 clientHandler.addTask(newTask);
                 // increment current client id
                 currentClientId++;
@@ -99,6 +101,8 @@ public class Server {
         }
     }
 // fields:
+    // GUI
+    private GUI gui;
     // server socket which accepts clients connection
     private ServerSocket serverSocket;
     // files save destination directory
@@ -114,7 +118,8 @@ public class Server {
     // maximum size of buffer (16kb)
     private static final int MAX_BUFFER_SIZE = 16000;
 // constructor:
-    public Server() {
+    public Server(GUI gui) {
+        this.gui = gui;
         configurator = new ServerConfigurator();
         pairController = new ClientPairController();
         clientHandler = new ThreadPool(1);
@@ -127,7 +132,7 @@ public class Server {
             configurator.config(port, dst);
         }
         catch (ServerException e) {
-            //TODO implement exception handling
+            gui.displayServerMessage(e.getExceptionMessage());
         }
         // start handle clients
         pairController.start();

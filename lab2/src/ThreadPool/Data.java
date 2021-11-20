@@ -3,9 +3,9 @@ package ThreadPool;
 import java.util.Arrays;
 
 // class represents auxiliary data class: classes, enums which are used in class Task
-class Data {
+public class Data {
     // description of data transfer class
-    static class DataTransferDescription extends Throwable {
+    public static class DataTransferDescription extends Throwable {
         private TraverseStatus status;
         private String description;
         // constructor:
