@@ -22,7 +22,7 @@ public class Server {
             description = dscr;
         }
         // get exception message method
-        String getExceptionMessage() {
+        public String getExceptionMessage() {
             return "Server exception of type: " + exceptionType.getValue() + ": " + description;
         }
     }
@@ -85,8 +85,10 @@ public class Server {
                 Socket clientSocket = null;
                 try {
                     clientSocket = acceptClient();
+                    gui.displayClientConnecting(currentClientId);
                 } catch (ServerException e) {
                     gui.displayServerMessage(e.getExceptionMessage());
+                    continue;
                 }
                 // create new task and add it to Thread Pool:
                 Task newTask = new Task(clientSocket, saveDstDir, currentClientId, MAX_BUFFER_SIZE, gui);
@@ -133,6 +135,7 @@ public class Server {
         }
         catch (ServerException e) {
             gui.displayServerMessage(e.getExceptionMessage());
+            System.exit(1);
         }
         // start handle clients
         pairController.start();

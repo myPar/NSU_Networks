@@ -14,7 +14,7 @@ public class ClientNotifier {
         socketOutputStream = outputStream;
     }
     public void notifyClient(DataTransferDescription description) throws ServerException {
-        String message = description.getMessage();
+        String message = description.getDescriptionMessage();
         byte[] messageData = message.getBytes();
 
         try {

@@ -42,7 +42,7 @@ public class FileWorker {
     //  offset - start byte idx; count - count of bytes to write
     public void writeData(byte[] buffer, int offset, int count) throws FileWorkerException {
         // use try-with-resources statement
-        try (FileOutputStream autoCloseStream = outputStream) {
+        try {
             outputStream.write(buffer, offset, count);
         } catch (IOException e) {
             throw new FileWorkerException(FileWorkerException.Type.FILE_WRITE);

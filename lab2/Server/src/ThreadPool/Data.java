@@ -14,7 +14,7 @@ public class Data {
             description = desc;
         }
         // get exception message method
-        String getDescriptionMessage() {
+        public String getDescriptionMessage() {
             if (status == TraverseStatus.SUCCESS_TRAVERSE) {
                 return status.getValue();
             }

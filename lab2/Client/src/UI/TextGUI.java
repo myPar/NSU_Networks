@@ -10,12 +10,12 @@ public class TextGUI implements GUI {
     }
 
     @Override
-    public void displayClientException(Client.ClientException e) {
-        System.out.println("STATUS: " + e.getMessage());
+    public synchronized void displayClientException(Client.ClientException e) {
+        System.out.println("STATUS: " + e.getExceptionMessage());
     }
 
     @Override
-    public void displayServerMessage(String message) {
+    public synchronized void displayServerMessage(String message) {
         System.out.println("SERVER RESPONSE: " + message);
     }
 }

@@ -8,7 +8,7 @@ import java.util.Scanner;
 
 class HeaderGetter {
     // if mode equals 'TEST' - this file contains header data
-    private final String inputFileName = "header_data.txt";
+    private final String inputFileName = "C:\\GitHubRepositories\\NSU_Networks\\NSU_Networks\\lab2\\Client\\src\\header_data.txt";
     // delimiter
     private String delimiter = "\\\\";
 
@@ -25,6 +25,7 @@ class HeaderGetter {
                     assert false;
                 }
                 String str = sc.nextLine();
+                assert str != null;
                 return str.getBytes();
             }
             case NORMAL: {

@@ -65,7 +65,7 @@ public class Task implements Runnable {
             // notify client
             notifier.notifyClient(resultDescription);
         } catch (ServerException e) {
-            gui.displayServerMessage(e.getMessage());
+            gui.displayServerMessage(e.getExceptionMessage());
         }
         // display data transfer status on Server side
         gui.displayTraverseStatus(resultDescription, clientId);
@@ -119,12 +119,12 @@ public class Task implements Runnable {
         return header;
     }
     // write received data to file method (returns total recieved data size)
-    private long writeFileData(byte[] buffer, byte[] remainData, int offset, int count, String fileName) throws DataTransferDescription {
-        long totalDataSize = count;
+    private long writeFileData(byte[] buffer, byte[] remainData, String fileName) throws DataTransferDescription {
+        long totalDataSize = remainData.length;
         try {
             FileWorker worker = new FileWorker(fileName);
             // write remain data
-            worker.writeData(remainData, offset, count);
+            worker.writeData(remainData, 0, remainData.length);
             // read file data from socket:
             while (true) {
                 int readByteCount;
@@ -176,7 +176,6 @@ public class Task implements Runnable {
         byte[] receiveDataBuffer = new byte[maxBufferSize];
         byte[] initDataBuffer;
         DataHeader header;
-        int readByteCount;
 
         // header fields values variables:
         int headerSize;
@@ -186,19 +185,21 @@ public class Task implements Runnable {
         try {
             // read data header: file name + expected file size:
             dataSize = writeHeaderDataBuffer(receiveDataBuffer);
-            initDataBuffer = Arrays.copyOf(receiveDataBuffer, dataSize);
-            header = getHeader(initDataBuffer);
+            header = getHeader(Arrays.copyOf(receiveDataBuffer, dataSize));
 
             // get header fields:
             headerSize = header.getHeaderSize();
             expectedFileSize = header.getExpectedFileSize();
-            outputFileName = outputDirName + "\\" + header.getFileName();
+            outputFileName = outputDirName + "\\\\" + header.getFileName();
+            // get remain data from buffer
+            initDataBuffer = Arrays.copyOfRange(receiveDataBuffer, headerSize, dataSize - 1);
 
             // write data to output file
-            totalFileSize = writeFileData(receiveDataBuffer, initDataBuffer, headerSize, dataSize, outputFileName);
+            totalFileSize = writeFileData(receiveDataBuffer, initDataBuffer, outputFileName);
         }
         catch (DataTransferDescription description) {
             completeTaskExecution(description);
+            return;
         }
         // complete task execution with success status
         completeTaskExecution(new DataTransferDescription(TraverseStatus.SUCCESS_TRAVERSE, "successful data traverse"));

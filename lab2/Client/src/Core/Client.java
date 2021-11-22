@@ -16,18 +16,19 @@ public class Client {
         private ClientExceptionType exceptionType;
         private String description;
 
-        public ClientException(ClientExceptionType type, String dscr) {
+        ClientException(ClientExceptionType type, String dscr) {
             exceptionType = type;
             description = dscr;
         }
         // get exception message method
-        String getExceptionMessage() {
-            return "Server exception of type: " + exceptionType.getValue() + ": " + description;
+        public String getExceptionMessage() {
+            return "Client exception of type " + exceptionType.getValue() + " - " + description;
         }
     }
 // client exception type enum
     public enum ClientExceptionType {
         CLOSE_CONNECTION_EXCEPTION("CLOSE CONNECTION EXCEPTION"),
+        CONNECTION_EXCEPTION("CONNECTION EXCEPTION"),
         CONFIGURATION_EXCEPTION("CONFIGURATION EXCEPTION"),
         FILE_SENDER_EXCEPTION("FILE SENDER EXCEPTION"),
         SERVER_RESPONSE_HANDLER_EXCEPTION("SERVER RESPONSE HANDLER EXCEPTION");
@@ -56,29 +57,38 @@ public class Client {
             HeaderGetter headerGetter = new HeaderGetter();
             byte[] header = headerGetter.getHeader(mode, new File(filePath));
 
-            // read byte count
-            int count;
-
             // read data from file and send it to server
+            int count;
             try {
                 // send header
                 socketOutputStream.write(header);
                 // send file data
-                while ((count = input.read(buffer)) > 0 || !Thread.currentThread().isInterrupted()) {
+                while (!Thread.currentThread().isInterrupted()) {
+                    count = input.read(buffer);
+
+                    if (count < 0) {
+                        break;
+                    }
                     socketOutputStream.write(buffer, 0, count);
                 }
+                // shut down output for client socket (without closing socket)
+                clientSocket.shutdownOutput();
             }
             catch (IOException e) {
-                throw new ClientException(ClientExceptionType.FILE_SENDER_EXCEPTION, "I/O exception - can't read/write data from/to socket");
+                if (!Thread.currentThread().isInterrupted()) {
+                    throw new ClientException(ClientExceptionType.FILE_SENDER_EXCEPTION, "I/O exception - can't read/write data from/to socket");
+                }
             }
         }
         @Override
         public void run() {
             try {
                 execute();
+                // file is sent
             }
             catch(ClientException e) {
-
+                interruptAll();
+                gui.displayClientException(e);
             }
         }
     }
@@ -91,11 +101,15 @@ public class Client {
                 int count = socketInputStream.read(buffer);
                 // get server message
                 String serverMessage = new String(Arrays.copyOf(buffer, count));
-                // TODO: give output to gui
+                gui.displayServerMessage(serverMessage);
             }
             catch (IOException e) {
-                completeExecution(new ClientException(ClientExceptionType.SERVER_RESPONSE_HANDLER_EXCEPTION, "exception while reading server response"));
+                interruptAll();
+                gui.displayClientException(new ClientException(ClientExceptionType.SERVER_RESPONSE_HANDLER_EXCEPTION, "exception while reading server response"));
+                return;
             }
+            // if response from Server got - Interrupt all
+            interruptAll();
         }
     }
     // client socket
@@ -111,20 +125,23 @@ public class Client {
     private final int outputBufferSize = 16000;
     // server responder buffer size
     private final int inputBufferSize = 1000;
+    // interrupt flag
+    private boolean isInterrupted;
     // Client parts:
-    FileSender sender;
-    ServerResponseHandler responseHandler;
-    GUI gui;
+    private FileSender sender;
+    private ServerResponseHandler responseHandler;
+    private GUI gui;
 // constructor:
     public Client(Mode mode, String filePath, String serverAddress, int serverPort, GUI gui) {
         this.mode = mode;
         this.gui = gui;
-        InetAddress serverInetAddress;
+        isInterrupted = false;
+        InetAddress serverInetAddress = null;
         try {
             serverInetAddress = config(filePath, serverAddress);
         } catch (ClientException e) {
             gui.displayClientException(e);
-            return;
+            System.exit(1);
         }
         try {
             clientSocket = new Socket(serverInetAddress, serverPort);
@@ -132,7 +149,8 @@ public class Client {
             socketInputStream = clientSocket.getInputStream();
             socketOutputStream = clientSocket.getOutputStream();
         } catch (IOException e) {
-            e.printStackTrace();
+            gui.displayClientException(new ClientException(ClientExceptionType.CONNECTION_EXCEPTION, "Can't connect to server"));
+            System.exit(1);
         }
         this.filePath = filePath;
         // init Client parts:
@@ -157,25 +175,23 @@ public class Client {
         return resultAddress;
     }
     // mark client Thread parts as interrupt
-    private void interrupt() {
-        responseHandler.interrupt();
-        sender.interrupt();
-    }
-    // complete client execution method (if no exceptions on client side exception equals null)
-    public void completeExecution(ClientException exception) {
-        if (exception != null) {
-            gui.displayClientException(exception);
-            try {
+    private synchronized void interruptAll() {
+        try {
+            if (!isInterrupted) {
+                sender.interrupt();
+                responseHandler.interrupt();
                 clientSocket.close();
-            } catch (IOException e) {
-                gui.displayClientException(new ClientException(ClientExceptionType.CLOSE_CONNECTION_EXCEPTION, "can't close socket"));
             }
-            responseHandler.interrupt();
-            sender.interrupt();
+            isInterrupted = true;
+        }
+        catch (IOException e) {
+            gui.displayClientException(new ClientException(ClientExceptionType.CLOSE_CONNECTION_EXCEPTION, "Fatal - can't close the socket"));
+            System.exit(1);
         }
     }
     // main execute method
     public void execute() {
-
+        sender.start();
+        responseHandler.start();
     }
 }

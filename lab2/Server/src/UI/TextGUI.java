@@ -9,7 +9,7 @@ public class TextGUI implements GUI {
     @Override
     public synchronized void displayTraverseStatus(DataTransferDescription description, int clientId) {
         System.out.print("client " + clientId + ": traverse status: ");
-        System.out.println(description.getMessage());
+        System.out.println(description.getDescriptionMessage());
     }
     // new client connected
     @Override
