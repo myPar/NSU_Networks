@@ -59,6 +59,7 @@ public class Client {
 
             // read data from file and send it to server
             int count;
+            int totalFileSize = 0;  // TODO remove later
             try {
                 // send header
                 socketOutputStream.write(header);
@@ -70,7 +71,9 @@ public class Client {
                         break;
                     }
                     socketOutputStream.write(buffer, 0, count);
+                    totalFileSize += count;
                 }
+                System.out.println("Sent: " + totalFileSize + " bytes");
                 // shut down output for client socket (without closing socket)
                 clientSocket.shutdownOutput();
             }

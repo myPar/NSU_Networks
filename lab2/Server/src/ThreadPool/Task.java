@@ -192,7 +192,7 @@ public class Task implements Runnable {
             expectedFileSize = header.getExpectedFileSize();
             outputFileName = outputDirName + "\\\\" + header.getFileName();
             // get remain data from buffer
-            initDataBuffer = Arrays.copyOfRange(receiveDataBuffer, headerSize, dataSize - 1);
+            initDataBuffer = Arrays.copyOfRange(receiveDataBuffer, headerSize, dataSize);
 
             // write data to output file
             totalFileSize = writeFileData(receiveDataBuffer, initDataBuffer, outputFileName);
