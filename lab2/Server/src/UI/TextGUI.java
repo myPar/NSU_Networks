@@ -23,8 +23,9 @@ public class TextGUI implements GUI {
     }
     // display data receive speed from client
     @Override
-    public synchronized void displayDataTraverseSpeed(double speed, int clientId) {
-        System.out.println("client " + clientId + ": traverse speed - " + speed);
+    public synchronized void displayDataTraverseSpeed(long speedAverageCurrent, long speedAverageSession, int clientId) {
+        System.out.println("client " + clientId + " traverse speed: average for session - " + speedAverageSession
+                + " byte/s " + "current - " + speedAverageCurrent + " byte/s");
     }
     // display serve message method
     @Override

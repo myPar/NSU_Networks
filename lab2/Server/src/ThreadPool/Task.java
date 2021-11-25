@@ -23,7 +23,7 @@ public class Task implements Runnable {
     private InputStream socketInStream;
     private OutputStream socketOutStream;
     // timeout of data transfer speed checking (ms)
-    private final int checkSpeedTimeout = 10;
+    private final int checkSpeedTimeout = 3000;
     // the output dir name, data will save here
     private String outputDirName;
     // unique id of paired client
@@ -125,6 +125,12 @@ public class Task implements Runnable {
             FileWorker worker = new FileWorker(fileName);
             // write remain data
             worker.writeData(remainData, 0, remainData.length);
+
+            long prevTime = System.currentTimeMillis();
+            long startSessionTime = prevTime;
+            long currentTime;
+            long lastCheckDataSize = 0;
+
             // read file data from socket:
             while (true) {
                 int readByteCount;
@@ -135,6 +141,19 @@ public class Task implements Runnable {
                         break;
                     }
                     totalDataSize += readByteCount;
+                    currentTime = System.currentTimeMillis();
+
+                    if (currentTime - prevTime >= checkSpeedTimeout) {
+                        long averageSessionSpeed = totalDataSize / (currentTime - startSessionTime);
+                        long averageCurrentSpeed = (totalDataSize - lastCheckDataSize) / checkSpeedTimeout;
+
+                        // display speeds:
+                        gui.displayDataTraverseSpeed(averageCurrentSpeed, averageSessionSpeed, clientId);
+                        // update prev time
+                        prevTime = currentTime;
+                        lastCheckDataSize = totalDataSize;
+                    }
+
                     worker.writeData(buffer, 0, readByteCount);
                 } catch (IOException e) {
                     throw new DataTransferDescription(TraverseStatus.SOCKET_EXCEPTION, "can't read data from socket");
