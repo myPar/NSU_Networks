@@ -4,14 +4,19 @@ import APIResponceParsers.NearestPlacesParser;
 import APIResponceParsers.PlaceByNameParser;
 import APIResponceParsers.PlacesDescriptionParser;
 import APIResponceParsers.PlacesWeatherParser;
+
+import Core.APIRequester.RequesterException;
+import Core.APIRequester.RequesterException.ExceptionType;
+
 import JSONconvertion.classes.NamedPoints;
 import JSONconvertion.classes.PlacesDescription.PlaceDescription;
 import JSONconvertion.classes.PlacesWithId;
 import JSONconvertion.classes.WeatherDescription;
+import com.google.gson.JsonIOException;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.StringJoiner;
+
 
 public class Tasks {
     enum Language {
@@ -58,7 +63,7 @@ public class Tasks {
         return builder.toString();
     }
     // get place by name method
-    static ArrayList<NamedPoints.Hit>  getPlacesByName(String placeName) throws IOException {
+    static ArrayList<NamedPoints.Hit>  getPlacesByName(String placeName) throws RequesterException {
         assert isConfigured;
         // construct url:
         String[] urlParts = urlTemplate1.split(" ");
@@ -72,13 +77,26 @@ public class Tasks {
 
         // url request
         HTTPclient myClient = new HTTPclient(readTimeout, connectTimeout);
-        String jsonResult = myClient.request(resultUrl);
+        String jsonResult;
+        try {
+            jsonResult = myClient.request(resultUrl);
+        }
+        catch (IOException e) {
+            throw new RequesterException(ExceptionType.HTTP_REQUEST, "request failed. 'get places by name' task");
+        }
 
-        // return parsed result
-        return PlaceByNameParser.parse(jsonResult);
+        // parse JSON result
+        ArrayList<NamedPoints.Hit> result;
+        try {
+            result = PlaceByNameParser.parse(jsonResult);
+        }
+        catch (JsonIOException e) {
+            throw new RequesterException(ExceptionType.API_RESPONSE, "invalid JSON got: " + jsonResult + "\n'get places by name' task");
+        }
+        return result;
     }
     // get nearest places
-    static ArrayList<PlacesWithId.Feature> getNearestPlaces(NamedPoints.Point point, int radius, int limit) throws IOException {
+    static ArrayList<PlacesWithId.Feature> getNearestPlaces(NamedPoints.Point point, int radius, int limit) throws RequesterException {
         assert isConfigured;
         // construct url:
         String[] urlParts = urlTemplate2.split(" ");
@@ -95,15 +113,29 @@ public class Tasks {
         // concat all substrings
         String resultUrl = joinSubstrings(urlParts);
 
-        // url request
+        // url request:
         HTTPclient myClient = new HTTPclient(readTimeout, connectTimeout);
-        String jsonResult = myClient.request(resultUrl);
+        String jsonResult;
 
-        // return parsed result
-        return NearestPlacesParser.parse(jsonResult);
+        try {
+            jsonResult = myClient.request(resultUrl);
+        }
+        catch (IOException e) {
+            throw new RequesterException(ExceptionType.HTTP_REQUEST, "request failed. 'get nearest places' task");
+        }
+
+        // parse JSON result
+        ArrayList<PlacesWithId.Feature> result;
+        try {
+            result = NearestPlacesParser.parse(jsonResult);
+        }
+        catch (JsonIOException e) {
+            throw new RequesterException(ExceptionType.API_RESPONSE, "invalid JSON got: " + jsonResult + "\n'get nearest places' task");
+        }
+        return result;
     }
     // get place description
-    static PlaceDescription getPlaceDescription(int xid, Language lang) throws IOException {
+    static PlaceDescription getPlaceDescription(int xid, Language lang) throws RequesterException {
         assert isConfigured;
         // construct url:
         String[] urlParts = urlTemplate3.split(" ");
@@ -119,13 +151,27 @@ public class Tasks {
 
         // url request
         HTTPclient myClient = new HTTPclient(readTimeout, connectTimeout);
-        String jsonResult = myClient.request(resultUrl);
+        String jsonResult;
 
-        // return parsed result
-        return PlacesDescriptionParser.parse(jsonResult);
+        try {
+            jsonResult = myClient.request(resultUrl);
+        }
+        catch (IOException e) {
+            throw new RequesterException(ExceptionType.HTTP_REQUEST, "request failed. 'get place description' task");
+        }
+
+        // parse JSON result
+        PlaceDescription result;
+        try {
+            result = PlacesDescriptionParser.parse(jsonResult);
+        }
+        catch(JsonIOException e) {
+            throw new RequesterException(ExceptionType.API_RESPONSE, "invalid JSON got: " + jsonResult + "\n'get place description' task");
+        }
+        return result;
     }
     // get place weather
-    static WeatherDescription.Root getPlaceWeather(NamedPoints.Point point) throws IOException {
+    static WeatherDescription.Root getPlaceWeather(NamedPoints.Point point) throws RequesterException {
         assert isConfigured;
         // construct url:
         String[] urlParts = urlTemplate4.split(" ");
@@ -140,9 +186,23 @@ public class Tasks {
 
         // url request
         HTTPclient myClient = new HTTPclient(readTimeout, connectTimeout);
-        String jsonResult = myClient.request(resultUrl);
+        String jsonResult;
 
-        // return parsed result
-        return PlacesWeatherParser.parse(jsonResult);
+        try {
+            jsonResult = myClient.request(resultUrl);
+        }
+        catch (IOException e) {
+            throw new RequesterException(ExceptionType.HTTP_REQUEST, "request failed. 'get place weather' task");
+        }
+
+        // parse JSON result
+        WeatherDescription.Root result;
+        try {
+            result = PlacesWeatherParser.parse(jsonResult);
+        }
+        catch(JsonIOException e) {
+            throw new RequesterException(ExceptionType.API_RESPONSE, "invalid JSON got: " + jsonResult + "\n'get place weather' task");
+        }
+        return result;
     }
 }

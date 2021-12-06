@@ -5,12 +5,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import Core.APIRequester.RequesterException;
+import Core.APIRequester.RequesterException.ExceptionType;
 
-public class HTTPclient {
+class HTTPclient {
     private int connectTimeout;
     private int readTimeout;
 
-    public HTTPclient(int readTimeout, int connectTimeout) {
+    HTTPclient(int readTimeout, int connectTimeout) {
         this.readTimeout = readTimeout;
         this.connectTimeout = connectTimeout;
     }
@@ -27,7 +29,7 @@ public class HTTPclient {
         String inputLine;
         StringBuilder contentBuilder = new StringBuilder();
 
-        while((inputLine=reader.readLine()) != null) {
+        while ((inputLine = reader.readLine()) != null) {
             contentBuilder.append(inputLine);
         }
         // return JSON data
