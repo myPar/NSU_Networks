@@ -7,11 +7,6 @@ public class PlacesDescription {
         public String html;
     }
 
-    public class Point {
-        public double lon;
-        public double lat;
-    }
-
     public class PlaceDescription {
         public String xid;
         public String name;

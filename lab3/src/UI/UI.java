@@ -3,6 +3,10 @@ package UI;
 import Core.APIRequester;
 import JSONconvertion.classes.NamedPoints;
 import Core.APIRequester.RequesterException;
+import JSONconvertion.classes.PlacesDescription;
+import JSONconvertion.classes.PlacesWithId;
+import JSONconvertion.classes.WeatherDescription;
+
 import java.util.ArrayList;
 
 public interface UI {
@@ -22,5 +26,12 @@ public interface UI {
 
     // display exception threw while app executing
     void displayException(RequesterException e);
+    // get maximum number of places to describe
+    int getLimit();
+    // display places with xid
+    void displayPlacesWithinRadius(ArrayList<PlacesWithId.Feature> nearPlaces);
 
+    void displayWeather(PlacesWithId.Feature feature, WeatherDescription.Root weather);
+
+    void displayDescription(PlacesWithId.Feature feature, PlacesDescription.PlaceDescription description);
 }

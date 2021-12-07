@@ -11,6 +11,7 @@ import Core.APIRequester.RequesterException.ExceptionType;
 import JSONconvertion.classes.NamedPoints;
 import JSONconvertion.classes.PlacesDescription.PlaceDescription;
 import JSONconvertion.classes.PlacesWithId;
+import JSONconvertion.classes.Point;
 import JSONconvertion.classes.WeatherDescription;
 import com.google.gson.JsonIOException;
 
@@ -96,14 +97,14 @@ public class Tasks {
         return result;
     }
     // get nearest places
-    static ArrayList<PlacesWithId.Feature> getNearestPlaces(NamedPoints.Point point, int radius, int limit) throws RequesterException {
+    static ArrayList<PlacesWithId.Feature> getNearestPlaces(Point point, int radius, int limit) throws RequesterException {
         assert isConfigured;
         // construct url:
         String[] urlParts = urlTemplate2.split(" ");
         // insert radius
         urlParts[0] = urlParts[0] + radius;
         // insert lon and lat
-        urlParts[1] = urlParts[1] + point.lng;
+        urlParts[1] = urlParts[1] + point.lon;
         urlParts[2] = urlParts[2] + point.lat;
         // insert limit
         urlParts[3] = urlParts[3] + limit;
@@ -135,7 +136,7 @@ public class Tasks {
         return result;
     }
     // get place description
-    static PlaceDescription getPlaceDescription(int xid, Language lang) throws RequesterException {
+    static PlaceDescription getPlaceDescription(String xid, Language lang) throws RequesterException {
         assert isConfigured;
         // construct url:
         String[] urlParts = urlTemplate3.split(" ");
@@ -171,13 +172,13 @@ public class Tasks {
         return result;
     }
     // get place weather
-    static WeatherDescription.Root getPlaceWeather(NamedPoints.Point point) throws RequesterException {
+    static WeatherDescription.Root getPlaceWeather(Point point) throws RequesterException {
         assert isConfigured;
         // construct url:
         String[] urlParts = urlTemplate4.split(" ");
         // set lat and lon
         urlParts[0] = urlParts[0] + point.lat;
-        urlParts[1] = urlParts[1] + point.lng;
+        urlParts[1] = urlParts[1] + point.lon;
         // set API-key
         urlParts[2] = urlParts[2] + openWeatherMapAPIkey;
 

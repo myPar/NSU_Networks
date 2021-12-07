@@ -4,10 +4,6 @@ import java.util.ArrayList;
 
 // describes list of geography points with specified names and types
 public class NamedPoints {
-    public class Point{
-        public double lng;
-        public double lat;
-    }
 
     public class Hit{
         public int osm_id;
