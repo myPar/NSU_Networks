@@ -7,7 +7,6 @@ import com.google.gson.JsonIOException;
 public class PlacesDescriptionParser {
     public static PlaceDescription parse(String jsonString) throws JsonIOException {
         Gson jsonParser = new Gson();
-
         return jsonParser.fromJson(jsonString, PlaceDescription.class);
     }
 }

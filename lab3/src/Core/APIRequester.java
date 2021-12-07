@@ -6,12 +6,10 @@ import JSONconvertion.classes.PlacesWithId;
 import JSONconvertion.classes.WeatherDescription;
 import UI.UI;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
 import Core.APIRequester.RequesterException.ExceptionType;
-import javafx.concurrent.Task;
 
 public class APIRequester {
     public static class RequesterException extends Exception {
@@ -32,7 +30,7 @@ public class APIRequester {
             type = t;
             message = m;
         }
-        String getExceptionMessage() {
+        public String getExceptionMessage() {
             return "Exception of type " + type.getValue() + ". " + message;
         }
     }
@@ -126,6 +124,11 @@ public class APIRequester {
                     }
                     ui.displayWeather(nearPlaces.get(i), weather);
                     ui.displayDescription(nearPlaces.get(i), description);
+                }
+                boolean exit = ui.getStatus();
+
+                if (exit) {
+                    break;
                 }
             } catch (RequesterException e) {
                 ui.displayException(e);

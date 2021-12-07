@@ -1,6 +1,7 @@
 package UI;
 
 import Core.APIRequester;
+import Core.Tasks;
 import JSONconvertion.classes.NamedPoints;
 import Core.APIRequester.RequesterException;
 import JSONconvertion.classes.PlacesDescription;
@@ -34,4 +35,6 @@ public interface UI {
     void displayWeather(PlacesWithId.Feature feature, WeatherDescription.Root weather);
 
     void displayDescription(PlacesWithId.Feature feature, PlacesDescription.PlaceDescription description);
+
+    boolean getStatus();
 }

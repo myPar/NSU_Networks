@@ -20,7 +20,7 @@ import java.util.ArrayList;
 
 
 public class Tasks {
-    enum Language {
+    public enum Language {
         EN("en"), RU("ru");
         private String value;
 
