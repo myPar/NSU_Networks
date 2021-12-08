@@ -1,10 +1,7 @@
 package UI;
 
 import Core.APIRequester;
-import JSONconvertion.classes.NamedPoints;
-import JSONconvertion.classes.PlacesDescription;
-import JSONconvertion.classes.PlacesWithId;
-import JSONconvertion.classes.WeatherDescription;
+import JSONconvertion.classes.*;
 
 import java.util.ArrayList;
 import java.util.Scanner;
@@ -97,13 +94,17 @@ public class TextUI implements UI {
         }
         if (nearPlaces.size() == 0) {
             System.out.print("empty");
+            System.out.println();
             return;
         }
 
         for (PlacesWithId.Feature place: nearPlaces) {
-            System.out.println("    name: " + place.name);
-            System.out.println("    point: " + "lat=" + place.point.lat + " lon=" + place.point.lon);
-            System.out.println("    xid: " + place.xid);
+            System.out.println("    name: " + place.properties.name);
+            Point placePoint = place.geometry.getPoint();
+
+            System.out.println("    point: " + "lat=" + placePoint.lat + " lon=" + placePoint.lon);
+            System.out.println("    xid: " + place.properties.xid);
+            System.out.println();
         }
         System.out.println("-------------------------------");
     }
@@ -114,7 +115,8 @@ public class TextUI implements UI {
             System.out.println("null place");
             return;
         }
-        System.out.println("Weather in place " + feature.name + "(" + "lat=" + feature.point.lat + " lon=" + feature.point.lon + "):");
+        Point placePoint = feature.geometry.getPoint();
+        System.out.println("Weather in place " + feature.properties.name + "(" + "lat=" + placePoint.lat + " lon=" + placePoint.lon + "):");
         if (weather == null) {
             System.out.println("    null");
             return;
@@ -133,19 +135,42 @@ public class TextUI implements UI {
             System.out.println("null place");
             return;
         }
-        System.out.println("Description of place " + feature.name + "(" + "lat=" + feature.point.lat + " lon=" + feature.point.lon + "):");
+        Point placePoint = feature.geometry.getPoint();
+        System.out.println("Description of place " + feature.properties.name + "(" + "lat=" + placePoint.lat + " lon=" + placePoint.lon + "):");
         if (description == null) {
             System.out.println("    null");
-            return;
         }
-        System.out.println(description.wikipedia_extracts.text);
+        else if (description.info != null && description.info.descr != null) {
+            System.out.println(description.info.descr);
+        }
+        else if (description.wikipedia_extracts != null && description.wikipedia_extracts.text != null) {
+            System.out.println(description.wikipedia_extracts.text);
+        }
+        else {
+            System.out.println("Description not found");
+        }
         System.out.println();
     }
 
     @Override
     public boolean getStatus() {
-        String status = sc.nextLine();
-        return status.equals("exit");
+        String status;
+        boolean result = false;
+
+        while(true) {
+            status = sc.nextLine();
+            if (status.equals("exit")) {
+                result = true;
+                break;
+            }
+            else if (status.equals("continue")) {
+                break;
+            }
+            else {
+                System.out.println("invalid status - " + status + ", enter 'exit' or 'continue'");
+            }
+        }
+        return result;
     }
     public void close() {
         sc.close();

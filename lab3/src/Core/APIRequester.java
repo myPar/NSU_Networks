@@ -92,7 +92,7 @@ public class APIRequester {
                     placesDescriptionTasks.add(CompletableFuture.supplyAsync(()-> {
                         PlaceDescription result = null;
                         try {
-                            result = Tasks.getPlaceDescription(place.xid, Tasks.Language.RU);
+                            result = Tasks.getPlaceDescription(place.properties.xid, Tasks.Language.RU);
                         } catch (RequesterException e) {
                             ui.displayException(e);
                         }
@@ -102,7 +102,7 @@ public class APIRequester {
                     placesWeatherTasks.add(CompletableFuture.supplyAsync(() -> {
                         WeatherDescription.Root result = null;
                         try {
-                            result = Tasks.getPlaceWeather(place.point);
+                            result = Tasks.getPlaceWeather(place.geometry.getPoint());
                         }
                         catch(RequesterException e) {
                             ui.displayException(e);
@@ -125,14 +125,15 @@ public class APIRequester {
                     ui.displayWeather(nearPlaces.get(i), weather);
                     ui.displayDescription(nearPlaces.get(i), description);
                 }
-                boolean exit = ui.getStatus();
-
-                if (exit) {
-                    break;
-                }
             } catch (RequesterException e) {
                 ui.displayException(e);
             }
+            boolean exit = ui.getStatus();
+
+            if (exit) {
+                break;
+            }
         }
+        ui.close();
     }
 }

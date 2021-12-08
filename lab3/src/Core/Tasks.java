@@ -13,6 +13,8 @@ import JSONconvertion.classes.PlacesDescription.PlaceDescription;
 import JSONconvertion.classes.PlacesWithId;
 import JSONconvertion.classes.Point;
 import JSONconvertion.classes.WeatherDescription;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 
 import java.io.IOException;
@@ -133,6 +135,7 @@ public class Tasks {
         catch (JsonIOException e) {
             throw new RequesterException(ExceptionType.API_RESPONSE, "invalid JSON got: " + jsonResult + "\n'get nearest places' task");
         }
+
         return result;
     }
     // get place description

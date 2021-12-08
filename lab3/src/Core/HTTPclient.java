@@ -32,6 +32,7 @@ class HTTPclient {
         while ((inputLine = reader.readLine()) != null) {
             contentBuilder.append(inputLine);
         }
+        reader.close();
         // return JSON data
         return contentBuilder.toString();
     }
