@@ -6,7 +6,15 @@ import JSONconvertion.classes.PlacesWithId;
 import JSONconvertion.classes.WeatherDescription;
 import UI.UI;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.nio.file.Path;
+
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 
 import Core.APIRequester.RequesterException.ExceptionType;
@@ -45,13 +53,35 @@ public class APIRequester {
     public APIRequester(UI ui) {
         this.ui = ui;
     }
-    // init API keys
+
     private void config() {
+        // init API keys
         graphHooperAPIkey = ui.getGHkey();
         openTripMapAPIkey = ui.getOTkey();
         openWeatherMapAPIkey = ui.getOWkey();
-        readTimeout = 1000;
-        connectTimeout = 1000;
+
+        // init connection and read timeouts:
+        File connectionConfigFile = new File("src\\Core\\connection config");
+        Scanner sc = null;
+        try {
+            sc = new Scanner(new FileInputStream(connectionConfigFile));
+        }
+        catch (FileNotFoundException e) {
+            System.err.println("Config file not found");
+            System.exit(1);
+        }
+        readTimeout = sc.nextInt();
+        connectTimeout = sc.nextInt();
+        sc.close();
+
+        if (readTimeout <= 0) {
+            System.err.println("Invalid read timeout value - " + readTimeout);
+            System.exit(1);
+        }
+        if (connectTimeout <= 0) {
+            System.err.println("Invalid connection timeout value - " + connectTimeout);
+            System.exit(1);
+        }
     }
     public void execute() {
         config();
