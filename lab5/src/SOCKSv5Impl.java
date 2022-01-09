@@ -1,5 +1,6 @@
-import data.ChannelState;
-import data.ChannelType;
+import LogData.LogData.Status;
+import LogData.LogData.Type;
+import LogData.LogData;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -8,73 +9,52 @@ import java.net.UnknownHostException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.logging.Level;
 
 import static data.ChannelState.*;
 import static data.ChannelType.CLIENT;
 import static data.ChannelType.REMOTE;
 
 class SOCKSv5Impl {
-    static void responseInitSuccess(SelectionKey key) throws IOException {
-        //SocketChannel channel = ((SocketChannel) key.channel());
+    static void responseInitSuccess(SelectionKey key) {
         Server.ChannelWrap chWrap = (Server.ChannelWrap) key.attachment ();
 
         chWrap.outBuffer.clear();
         chWrap.outBuffer.put(successInitRespond);
         chWrap.outBuffer.flip();
-
-        //channel.write(chWrap.outBuffer);
-        //chWrap.setNewState(CONNECTION_REQUEST);
-        //key.interestOps(SelectionKey.OP_READ);
     }
 
-    static void responseInitFailed(SelectionKey key) throws IOException {
-        //SocketChannel channel = ((SocketChannel) key.channel());
+    static void responseInitFailed(SelectionKey key) {
         Server.ChannelWrap chWrap = (Server.ChannelWrap) key.attachment ();
 
         chWrap.outBuffer.clear();
         chWrap.outBuffer.put(failedInitRespond);
         chWrap.outBuffer.flip();
-        //channel.write(chWrap.outBuffer);
-        // close channel later
     }
 
-    static void responseConnectSuccess(SelectionKey key) throws IOException {
-        Server.ResponseData respData = ((Server.ChannelWrap) key.attachment()).responseData;
-        Server.ChannelWrap chWrap = (Server.ChannelWrap) key.attachment();
-        SocketChannel channel = (SocketChannel) key.channel();
-        byte[] message;
+    static void responseConnectSuccess(SelectionKey key) {
+        Server.LOGGER.log(Level.INFO, LogData.getMessage(Type.CONNECT, Status.IN_PROCESS, "write response"));
 
+        Server.ChannelWrap chWrap = (Server.ChannelWrap) key.attachment();
+        Server.ResponseData respData = chWrap.responseData;
+
+        chWrap.outBuffer.clear();
+        // write header:
+        chWrap.outBuffer.put(Constants.SOCKS_VERSION)
+                .put(Constants.REQUEST_PROVIDED)
+                .put(Constants.RESERVED);
         if (respData.ipAddress != null) {
-            message = new byte[Constants.CONNECT_MESSAGE_IPv4];
-            message[3] = Constants.IP;
-            // init address:
-            message[4] = respData.ipAddress[0];
-            message[5] = respData.ipAddress[1];
-            message[6] = respData.ipAddress[2];
-            message[7] = respData.ipAddress[3];
+            chWrap.outBuffer.put(Constants.IP)
+                            .put(respData.ipAddress);
         }
         else {
-            assert respData.domainName != null;
-            message = new byte[respData.domainName.length + 1 + 6];
-            message[3] = Constants.DN;
-            // init domain name:
-            System.arraycopy(respData.domainName, 0, message, 4, respData.domainName.length);
+            chWrap.outBuffer.put((byte) respData.domainName.length)
+                            .put(respData.domainName);
         }
-        // init header:
-        message[0] = Constants.SOCKS_VERSION;
-        message[1] = Constants.REQUEST_PROVIDED;
-        message[2] = Constants.RESERVED;
-        int length = message.length;
-        // init port:
-        message[length - 2] = respData.port1;
-        message[length - 1] = respData.port2;
-
-        // write to channel:
-        chWrap.outBuffer.clear();
-        chWrap.outBuffer.put(message);
+        chWrap.outBuffer.putShort(respData.port);
         chWrap.outBuffer.flip();
 
-        //channel.write(chWrap.outBuffer);
+        Server.LOGGER.log(Level.INFO, LogData.getMessage(Type.CONNECT, Status.SUCCESS, "connection response wrote"));
     }
 
     static void responseConnectFailed(SelectionKey key) throws IOException {
@@ -103,15 +83,6 @@ class SOCKSv5Impl {
     private static final byte[] successInitRespond = {Constants.SOCKS_VERSION, (byte) 0x00};
     private static final byte[] failedInitRespond = {Constants.SOCKS_VERSION, (byte) 0xff};
 
-    static void setWrite(SelectionKey key, Server.ChannelWrap chWrap, ChannelState state) {
-        // change channel state (now he is waiting a response)
-        chWrap.setNewState(state);
-        // remove read op and add write op to client channel
-        key.interestOps(SelectionKey.OP_WRITE);
-        // clear buffer
-        chWrap.inBuffer.clear();
-    }
-
     static void readInitRequest(SelectionKey key) throws SOCKSv5Exception{
         Server.ChannelWrap chWrap = (Server.ChannelWrap) key.attachment();
         assert chWrap.type == CLIENT;
@@ -121,10 +92,11 @@ class SOCKSv5Impl {
         if (chWrap.inBuffer.position() < Constants.HELLO_MESSAGE_SIZE || data[0] != Constants.SOCKS_VERSION || data[1] != (byte) 0x01 || data[2] != (byte) 0x00) {
             throw new SOCKSv5Exception("invalid hello message format", Constants.INIT_REQUEST_ERROR);
         }
-        //setWrite(key, chWrap, INIT_RESPONSE_SUCCESS);
+        // request checked, clear the buffer
+        chWrap.inBuffer.clear();
     }
 
-    static void readConnectionRequest(SelectionKey key) throws SOCKSv5Exception {
+    static void readConnectionRequest(SelectionKey key) throws SOCKSv5Exception, IOException {
         Server.ChannelWrap chWrap = (Server.ChannelWrap) key.attachment();
         assert chWrap.type == CLIENT;
         byte[] data = chWrap.inBuffer.array();
@@ -137,6 +109,7 @@ class SOCKSv5Impl {
         if (data[0] != Constants.SOCKS_VERSION || data[1] != (byte) 0x01 || data[2] != (byte) 0x00) {
             throw new SOCKSv5Exception("invalid connect message format: header", Constants.PROTOCOL_ERROR);
         }
+        Server.LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.SUCCESS, "connection request format checked"));
         InetAddress address;
         String name;
         byte port1;
@@ -147,6 +120,7 @@ class SOCKSv5Impl {
 
         // IPv4 address case:
         if (data[3] == 0x01) {
+            Server.LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.IN_PROCESS, "ipv4 address case"));
             if (chWrap.inBuffer.position() < Constants.CONNECT_MESSAGE_IPv4) {
                 // invalid length
                 throw new SOCKSv5Exception("invalid connect message (dst address type - ipv4) format: length", Constants.PROTOCOL_ERROR);
@@ -160,12 +134,13 @@ class SOCKSv5Impl {
             catch (UnknownHostException e) {
                 throw new SOCKSv5Exception("invalid connect message format: ipv4 address", Constants.HOST_UNAVAILABLE);
             }
+            Server.LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.SUCCESS, "ipv4 address got: " + address.toString()));
             port1 = data[8];
             port2 = data[9];
-
         }
         // domain name case
         else if (data[3] == 0x03) {
+            Server.LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.IN_PROCESS, "domain name case"));
             if (chWrap.inBuffer.position() < Constants.CONNECT_MESSAGE_DN) {
                 throw new SOCKSv5Exception("invalid connect message (dst address type - domain name) format: length", Constants.PROTOCOL_ERROR);
             }
@@ -179,26 +154,29 @@ class SOCKSv5Impl {
             StringBuilder builder = new StringBuilder();
             for (int i = 0; i < nameLength; i++) {
                 byte curByte = data[5 + i];
-                builder.append(curByte);
+                builder.append((char) curByte);
                 nameData[i] = curByte;
             }
             name = builder.toString();
 
+            Server.LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.SUCCESS, "domain name got: " + name));
             // get address
             try {
                 address = InetAddress.getByName(name);
             } catch (UnknownHostException e) {
                 throw new SOCKSv5Exception("remote connect failed", Constants.HOST_UNAVAILABLE);
             }
+            Server.LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.SUCCESS, "address got by dn: " + address.toString()));
             port1 = data[5 + nameLength];
             port2 = data[5 + nameLength + 1];
         }
         else {
-            throw new SOCKSv5Exception("invalid connect message format: dst address type", Constants.ADDRESS_TYPE_UNSUPPORTED);
+            throw new SOCKSv5Exception("invalid connect message format: dst address type unsupported", Constants.ADDRESS_TYPE_UNSUPPORTED);
         }
         // get port:
         port = ((0xff & port1) << 8) | ((0xff & port2));
-
+        Server.LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.IN_PROCESS, "remote channel port: " + port));
+        Server.LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.IN_PROCESS, "init connection to remote channel..."));
         // create new remote channel:
         SocketChannel remoteChannel;
         try {
@@ -208,6 +186,8 @@ class SOCKSv5Impl {
         } catch (IOException e) {
             throw new SOCKSv5Exception("remote connect failed", Constants.SOCKS_ERROR);
         }
+        Server.LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.SUCCESS, "connection init completed"));
+
         // register remote channel on connection:
         SelectionKey remoteChannelKey;
         try {
@@ -215,6 +195,8 @@ class SOCKSv5Impl {
         } catch (ClosedChannelException e) {
             throw new SOCKSv5Exception("channel registering failed", Constants.SOCKS_ERROR);
         }
+        Server.LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.SUCCESS, "remote channel registered in selector"));
+
         // create attachment
         Server.ChannelWrap remoteChannelWrap = new Server.ChannelWrap(REMOTE, NONE);
 
@@ -226,7 +208,7 @@ class SOCKSv5Impl {
         assert channelWrap.remoteKey == null;
         channelWrap.setRemoteKey(remoteChannelKey);
 
-        // set response data:
-        ((Server.ChannelWrap) key.attachment()).responseData = new Server.ResponseData(port1, port2, addressData, nameData, Constants.REQUEST_PROVIDED);
+        // clear in buffer
+        chWrap.inBuffer.clear();
     }
 }

@@ -99,14 +99,14 @@ public class Tasks {
         return result;
     }
     // get nearest places
-    static ArrayList<PlacesWithId.Feature> getNearestPlaces(Point point, int radius, int limit) throws RequesterException {
+    static ArrayList<PlacesWithId.Feature> getNearestPlaces(NamedPoints.Point point, int radius, int limit) throws RequesterException {
         assert isConfigured;
         // construct url:
         String[] urlParts = urlTemplate2.split(" ");
         // insert radius
         urlParts[0] = urlParts[0] + radius;
         // insert lon and lat
-        urlParts[1] = urlParts[1] + point.lon;
+        urlParts[1] = urlParts[1] + point.lng;
         urlParts[2] = urlParts[2] + point.lat;
         // insert limit
         urlParts[3] = urlParts[3] + limit;

@@ -67,7 +67,7 @@ public class TextUI implements UI {
             System.out.println("idx=" + idx);
             System.out.println("    name: " + place.name);
             System.out.println("    country: " + place.country);
-            System.out.println("    point: " + "lat=" + place.point.lat + " lon=" + place.point.lon);
+            System.out.println("    point: " + "lat=" + place.point.lat + " lon=" + place.point.lng);
             idx++;
         }
         System.out.println();
@@ -121,7 +121,7 @@ public class TextUI implements UI {
             System.out.println("    null");
             return;
         }
-        System.out.println("    weather: " + weather.name);
+        System.out.println("    weather: " + weather.weather.get(0).description);
         System.out.println("    wind speed: " + weather.wind.speed);
         System.out.println("    temperature description: ");
         System.out.println("        temperature: " + weather.main.temp);

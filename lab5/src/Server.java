@@ -1,3 +1,4 @@
+import LogData.LogData;
 import data.ChannelState;
 import data.ChannelType;
 
@@ -18,21 +19,21 @@ import static data.ChannelState.*;
 import static data.ChannelType.CLIENT;
 import static data.ChannelType.REMOTE;
 
+import LogData.LogData.Status;
+import LogData.LogData.Type;
+
 public class Server {
     private boolean stopped = true;
-    private static final Logger LOGGER = Logger.getLogger("Server logger");
-    private int curClientsCount = 0;
+    static final Logger LOGGER = Logger.getLogger("Server logger");
 
     static class ResponseData {
-        byte port1;
-        byte port2;
+        short port;
         byte[] ipAddress;
         byte[] domainName;
         byte code;
 
-        ResponseData(byte port1, byte port2, byte[] ipAddress, byte[] domainName, byte code) {
-            this.port1 = port1;
-            this.port2 = port2;
+        ResponseData(short port, byte[] ipAddress, byte[] domainName, byte code) {
+            this.port = port;
             this.ipAddress = ipAddress;
             this.domainName = domainName;
             this.code = code;
@@ -93,7 +94,7 @@ public class Server {
         }
         @Override
         public void run() {
-            LOGGER.log(Level.INFO, "Server started...");
+            LOGGER.log(Level.INFO, LogData.getMessage(Type.START, Status.SUCCESS, "start server process"));
 
             try {
                 handleClients(port);
@@ -105,10 +106,12 @@ public class Server {
     }
     // correct!!!
     private void accept(SelectionKey key) throws IOException {
+        LOGGER.log(Level.INFO, LogData.getMessage(Type.ACCEPT, Status.IN_PROCESS, "start accepting new client..."));
+
         // get server socket channel and it's selector
         ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
         Selector selector = key.selector();
-        // accept and configure channel
+        // accept and configure client channel
         SocketChannel clientChanel = serverChannel.accept();
         clientChanel.configureBlocking(false);
         // register channel in selector on READING
@@ -116,9 +119,12 @@ public class Server {
 
         // attach channel wrapper
         newClientKey.attach(new ChannelWrap(CLIENT, INIT_REQUEST));
+        LOGGER.log(Level.INFO, LogData.getMessage(Type.ACCEPT, Status.SUCCESS, "new client accepted: " + clientChanel.getLocalAddress().toString()));
     }
     // correct!!!
     private void connect(SelectionKey key) throws IOException {
+        LOGGER.log(Level.INFO, LogData.getMessage(Type.CONNECT, Status.IN_PROCESS, "start connection..."));
+
         SocketChannel channel = ((SocketChannel) key.channel());
         Server.ChannelWrap chWrap = (Server.ChannelWrap) key.attachment ();
 
@@ -127,6 +133,13 @@ public class Server {
 
         // finish the connection to remote channel
         channel.finishConnect();
+
+        // set response data for client (port - remote channel port, ip address - localhost address):
+        short responsePort = (short) ((InetSocketAddress) channel.getLocalAddress()).getPort();
+        byte[] responseAddress = InetAddress.getLocalHost().getAddress();
+        ((Server.ChannelWrap) clientChannelKey.attachment()).responseData = new Server.ResponseData(responsePort, responseAddress, null, Constants.REQUEST_PROVIDED);
+
+        LOGGER.log(Level.INFO, LogData.getMessage(Type.CONNECT, Status.SUCCESS, "connection complete"));
 
         // write success response to output buffer of the client key
         SOCKSv5Impl.responseConnectSuccess(clientChannelKey);
@@ -147,6 +160,7 @@ public class Server {
         SocketChannel channel = (SocketChannel) key.channel();
         int count;
         if ((count = channel.read(chWrap.inBuffer)) < 0) {
+            LOGGER.log(Level.INFO, LogData.getMessage(Type.CLOSE, Status.IN_PROCESS, "eof reached"));
             // end of the stream case
             closeChannel(key);
         }
@@ -155,34 +169,48 @@ public class Server {
                 switch (chWrap.state) {
                     case INIT_REQUEST: {
                         try {
+                            LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.IN_PROCESS, "start reading init request from client..."));
                             // read init request
                             SOCKSv5Impl.readInitRequest(key);
+                            LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.IN_PROCESS, "init request was successfully red"));
+
                             // write response to output buffer
                             SOCKSv5Impl.responseInitSuccess(key);
+                            LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.IN_PROCESS, "response on successful init request"));
+
                             // set op = write for client channel
                             key.interestOps(SelectionKey.OP_WRITE);
                             // set state = INIT_RESPONSE
                             ((ChannelWrap) key.attachment()).setNewState(INIT_RESPONSE_SUCCESS);
+
+                            LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.SUCCESS, "init request complete"));
                         } catch (SOCKSv5Impl.SOCKSv5Exception e) {
+                            LOGGER.log(Level.WARNING, LogData.getMessage(Type.READ, Status.FAILED, "init request failed: " + e.description));
                             SOCKSv5Impl.responseInitFailed(key);
+
                             // set op = write for client channel
                             key.interestOps(SelectionKey.OP_WRITE);
                             // set state = INIT_RESPONSE
                             ((ChannelWrap) key.attachment()).setNewState(INIT_RESPONSE_FAILED);
+
+                            LOGGER.log(Level.WARNING, LogData.getMessage(Type.READ, Status.FAILED, "write failed response"));
                         }
                         return;
                     }
                     case CONNECTION_REQUEST: {
                         try {
+                            LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.IN_PROCESS, "start reading connection request..."));
                             // read connection request
                             SOCKSv5Impl.readConnectionRequest(key);
                             // wait till connection become established
                             key.interestOps(0);
+                            LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.SUCCESS, "connection request complete"));
                         } catch (SOCKSv5Impl.SOCKSv5Exception e) {
                             String description = e.description;
                             byte code = e.code;
+                            LOGGER.log(Level.WARNING, LogData.getMessage(Type.READ, Status.FAILED, "connection request failed: " + description));
                             // set failed connection response write mode and exception code
-                            chWrap.responseData = new ResponseData((byte) 0,(byte) 0, null, null, code);
+                            chWrap.responseData = new ResponseData((short) 0, null, null, code);
                             SOCKSv5Impl.responseConnectFailed(key);
                             // set state = CONNECTION_RESPONSE_FAILED
                             ((ChannelWrap) key.attachment()).setNewState(CONNECTION_RESPONSE_FAILED);
@@ -212,6 +240,7 @@ public class Server {
     }
 
     private void closeChannel(SelectionKey key) {
+        LOGGER.log(Level.INFO, LogData.getMessage(Type.CLOSE, Status.IN_PROCESS, "start closing the channel..."));
         try {
             // deregister key
             key.cancel();
@@ -230,10 +259,15 @@ public class Server {
                 }
                 // set write op to send remaining data to channel
                 remoteKey.interestOps(SelectionKey.OP_WRITE);
+
+                LOGGER.log(Level.INFO, LogData.getMessage(Type.CLOSE, Status.SUCCESS, "first channel closed"));
+                return;
             }
+            LOGGER.log(Level.INFO, LogData.getMessage(Type.CLOSE, Status.SUCCESS, "second channel closed"));
         }
         catch (IOException e) {
             // fatal: can't close the channel
+            LOGGER.log(Level.WARNING, LogData.getMessage(Type.CLOSE, Status.FAILED, "fatal - can't close channel"));
         }
     }
     private void write(SelectionKey key) throws IOException {
@@ -249,19 +283,24 @@ public class Server {
 
                 switch (chWrap.state) {
                     case INIT_RESPONSE_SUCCESS: {
+                        LOGGER.log(Level.INFO, LogData.getMessage(Type.WRITE, Status.SUCCESS, "success init response wrote"));
                         key.interestOps(SelectionKey.OP_READ);
                         chWrap.setNewState(CONNECTION_REQUEST);
                         return;
                     }
                     case INIT_RESPONSE_FAILED:
                     case CONNECTION_RESPONSE_FAILED: {
+                        LOGGER.log(Level.INFO, LogData.getMessage(Type.WRITE, Status.SUCCESS, "failed response wrote"));
                         closeChannel(key);
                         return;
                     }
                     case CONNECTION_RESPONSE_SUCCESS: {
-                        // connection established set read mode for client and remote channel
+                        LOGGER.log(Level.INFO, LogData.getMessage(Type.WRITE, Status.SUCCESS, "success connection response wrote, start data transfer"));
+                        // connection established so set read mode for client and remote channel
                         key.interestOps(SelectionKey.OP_READ);
                         chWrap.remoteKey.interestOps(SelectionKey.OP_READ);
+                        chWrap.inBuffer.clear();
+                        chWrap.outBuffer.clear();
                         // set data traverse state
                         chWrap.setNewState(DATA_TRANSFER);
                         return;
@@ -276,10 +315,12 @@ public class Server {
         }
         else {
             assert chWrap.type == REMOTE;
+            // all data wrote to the channel, clear the buffer
+            chWrap.outBuffer.clear();
         }
         if (chWrap.outBuffer.remaining() == 0) {
             if (chWrap.remoteKey == null) {
-                // client channel is close, so close connection for the remote channel
+                // remote channel is closed, so close connection for current
                 closeChannel(key);
                 return;
             }
@@ -289,7 +330,8 @@ public class Server {
         }
     }
     private void handleClients(int port) throws IOException {
-        InetAddress localHost = InetAddress.getLocalHost();
+        LOGGER.log(Level.INFO, LogData.getMessage(Type.START, Status.SUCCESS, "start registering server channel"));
+        InetAddress localHost = InetAddress.getByName("127.0.0.1");
 
         // create selector
         Selector selector = Selector.open();
@@ -303,6 +345,7 @@ public class Server {
 
         // register server socket channel in Selector on accept action
         serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+        LOGGER.log(Level.INFO, LogData.getMessage(Type.START, Status.SUCCESS, "server channel registered successfully, wait incoming connections..."));
 
         // main server routine block
         while (selector.select() > -1) {
