@@ -64,7 +64,7 @@ public class Message {
         public ChangeRoleMessage(Data.NodeRole s_r, Data.NodeRole r_r) {sender_role = s_r; receiver_role = r_r; this.type = Type.ChangeRoleMsg;}
     }
     // set common fields method
-    public void set_common(long seq_number, int sender_id, int receiver_id) {
+    public void set_common(long seq_number, long sender_id, long receiver_id) {
         this.seq_number = seq_number;
         this.sender_id = sender_id;
         this.receiver_id = receiver_id;
@@ -76,9 +76,9 @@ public class Message {
     // message sequence number, unique for sender
     public long seq_number;
     // sender id - sender's id
-    public int sender_id;
+    public long sender_id;
     // receiver id
-    public int receiver_id;
+    public long receiver_id;
     // message type
     public Type type;
 }
