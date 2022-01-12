@@ -104,7 +104,7 @@ public class Server {
             }
         }
     }
-    // correct!!!
+
     private void accept(SelectionKey key) throws IOException {
         LOGGER.log(Level.INFO, LogData.getMessage(Type.ACCEPT, Status.IN_PROCESS, "start accepting new client..."));
 
@@ -121,7 +121,7 @@ public class Server {
         newClientKey.attach(new ChannelWrap(CLIENT, INIT_REQUEST));
         LOGGER.log(Level.INFO, LogData.getMessage(Type.ACCEPT, Status.SUCCESS, "new client accepted: " + clientChanel.getLocalAddress().toString()));
     }
-    // correct!!!
+
     private void connect(SelectionKey key) throws IOException {
         LOGGER.log(Level.INFO, LogData.getMessage(Type.CONNECT, Status.IN_PROCESS, "start connection..."));
 
@@ -141,11 +141,12 @@ public class Server {
 
         LOGGER.log(Level.INFO, LogData.getMessage(Type.CONNECT, Status.SUCCESS, "connection complete"));
 
-        // write success response to output buffer of the client key
-        SOCKSv5Impl.responseConnectSuccess(clientChannelKey);
         // bind buffers: client in - remote out, client out - remote in
         chWrap.inBuffer = clientChannelWrap.outBuffer;
         chWrap.outBuffer = clientChannelWrap.inBuffer;
+
+        // write success response to output buffer of the client key
+        SOCKSv5Impl.responseConnectSuccess(clientChannelKey);
 
         // set client channel state - CONNECTION_RESPONSE_SUCCESS
         clientChannelWrap.setNewState(CONNECTION_RESPONSE_SUCCESS);
@@ -231,6 +232,7 @@ public class Server {
             else {
                 assert chWrap.type == REMOTE;
             }
+            LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.SUCCESS, "DATA TRANSFER: was red " + chWrap.inBuffer.position() + " bytes"));
             // data transfer case
             key.interestOps(key.interestOps() ^ SelectionKey.OP_READ);                             // remove read
             chWrap.remoteKey.interestOps(chWrap.remoteKey.interestOps() | SelectionKey.OP_WRITE);    // add write to another channel
@@ -273,11 +275,13 @@ public class Server {
     private void write(SelectionKey key) throws IOException {
         ChannelWrap chWrap = (ChannelWrap) key.attachment();
         SocketChannel channel = (SocketChannel) key.channel();
-        int count;
-        count = channel.write(chWrap.outBuffer);
+
+        channel.write(chWrap.outBuffer);
+        int count = chWrap.outBuffer.limit();
 
         if (chWrap.type == CLIENT) {
             if (chWrap.outBuffer.remaining() == 0) {
+
                 // all data wrote so clear out buffer
                 chWrap.outBuffer.clear();
 
@@ -315,10 +319,14 @@ public class Server {
         }
         else {
             assert chWrap.type == REMOTE;
-            // all data wrote to the channel, clear the buffer
-            chWrap.outBuffer.clear();
         }
         if (chWrap.outBuffer.remaining() == 0) {
+            LOGGER.log(Level.INFO, LogData.getMessage(Type.WRITE, Status.SUCCESS, "DATA TRANSFER: wrote " + count + " bytes"));
+
+            if (chWrap.type == REMOTE) {
+                // all data wrote to the channel, clear the buffer
+                chWrap.outBuffer.clear();
+            }
             if (chWrap.remoteKey == null) {
                 // remote channel is closed, so close connection for current
                 closeChannel(key);
@@ -329,6 +337,7 @@ public class Server {
             chWrap.remoteKey.interestOps(chWrap.remoteKey.interestOps() | SelectionKey.OP_READ);    // add read to another channel
         }
     }
+    // correct
     private void handleClients(int port) throws IOException {
         LOGGER.log(Level.INFO, LogData.getMessage(Type.START, Status.SUCCESS, "start registering server channel"));
         InetAddress localHost = InetAddress.getByName("127.0.0.1");

@@ -115,8 +115,8 @@ class SOCKSv5Impl {
         byte port1;
         byte port2;
         int port;
-        byte[] addressData = null;
-        byte[] nameData = null;
+        byte[] addressData;
+        //byte[] nameData;
 
         // IPv4 address case:
         if (data[3] == 0x01) {
@@ -150,12 +150,10 @@ class SOCKSv5Impl {
                 throw new SOCKSv5Exception("invalid connect message (dst address type - domain name) format: length", Constants.PROTOCOL_ERROR);
             }
             // build domain name:
-            nameData = new byte[nameLength];
             StringBuilder builder = new StringBuilder();
             for (int i = 0; i < nameLength; i++) {
                 byte curByte = data[5 + i];
                 builder.append((char) curByte);
-                nameData[i] = curByte;
             }
             name = builder.toString();
 
@@ -174,7 +172,7 @@ class SOCKSv5Impl {
             throw new SOCKSv5Exception("invalid connect message format: dst address type unsupported", Constants.ADDRESS_TYPE_UNSUPPORTED);
         }
         // get port:
-        port = ((0xff & port1) << 8) | ((0xff & port2));
+        port = ((0xff & port1) << 8) + ((0xff & port2));
         Server.LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.IN_PROCESS, "remote channel port: " + port));
         Server.LOGGER.log(Level.INFO, LogData.getMessage(Type.READ, Status.IN_PROCESS, "init connection to remote channel..."));
         // create new remote channel:
