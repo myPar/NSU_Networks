@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+
+
+<AnchorPane prefHeight="500.0" prefWidth="800.0" style="-fx-background-color: #E4EBF0;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="UI.GUIcontroller">
+   <children>
+      <BorderPane layoutX="558.0" layoutY="13.0" prefHeight="476.0" prefWidth="227.0" style="-fx-background-color: #2754A2;">
+         <top>
+            <ListView fx:id="availableGamesList" onMouseClicked="#availableGamesClicked" prefHeight="310.0" prefWidth="188.0" BorderPane.alignment="CENTER" />
+         </top>
+         <bottom>
+            <Button fx:id="createNewGameButton" mnemonicParsing="false" onMouseClicked="#createNewGameClicked" prefHeight="55.0" prefWidth="135.0" text="CREATE NEW GAME" BorderPane.alignment="CENTER" />
+         </bottom>
+         <center>
+            <Button fx:id="joinGameButton" mnemonicParsing="false" onMouseClicked="#jonClicked" prefHeight="55.0" prefWidth="135.0" text="JOIN" BorderPane.alignment="CENTER" />
+         </center>
+      </BorderPane>
+      <BorderPane fx:id="gamePanel" layoutX="22.0" layoutY="13.0" prefHeight="475.0" prefWidth="515.0" style="-fx-background-color: #FFFFFF;" />
+   </children>
+</AnchorPane>
