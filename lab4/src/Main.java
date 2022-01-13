@@ -1,3 +1,5 @@
+import Core.Core;
+import UI.GUIcontroller;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -17,8 +19,16 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        Parent rootMenu = FXMLLoader.load(getClass().getResource(rootMenuPath));
+        //Parent rootMenu = FXMLLoader.load(getClass().getResource(rootMenuPath));
+
+        FXMLLoader loader = new FXMLLoader();
+        Parent rootMenu = loader.load(getClass().getResource(rootMenuPath).openStream());
         stage.setScene(new Scene(rootMenu, appWindowWidth, appWindowHeight));
+        GUIcontroller guiController = loader.getController();
+
+        Core gameCore = new Core(guiController);
+        gameCore.start();
+
         stage.show();
     }
 }

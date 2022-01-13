@@ -15,7 +15,7 @@ public class Socket implements ChannelProvider {
     private byte[] receiveBuffer = new byte[MAX_BUFF_SIZE];
 
     public static class SocketException extends Exception {
-        final String message;
+        public final String message;
 
         SocketException(String m) {
             message = m;
@@ -28,7 +28,7 @@ public class Socket implements ChannelProvider {
     private MulticastSocket groupMessageReceiver;
     private DatagramSocket socket;
 
-    public Socket(String groupAddress, int groupPort, int localPort) throws IOException {
+    public Socket(String groupAddress, int groupPort) throws IOException {
         this.groupAddress = InetAddress.getByName(groupAddress);
         this.groupPort = groupPort;
 
@@ -37,7 +37,7 @@ public class Socket implements ChannelProvider {
         socket = new DatagramSocket();  // bind to available port on the local host machine
     }
     @Override
-    public void sendMulticastInitMessage(List<Data.GamePlayer> players, Data.GameConfig config, boolean can_join) throws Exception {
+    public synchronized void sendMulticastInitMessage(List<Data.GamePlayer> players, Data.GameConfig config, boolean can_join) throws Exception {
         long msg_seq = CountProvider.provideCount();
         Message.InitMessage message = new Message.InitMessage(players, config, can_join);
         message.set_common(msg_seq, -1, -1);    // sender and receiver id doesn't matter at the start
@@ -51,7 +51,7 @@ public class Socket implements ChannelProvider {
     }
 
     @Override
-    public void sendPingMessage(InetAddress ip, int port, long sender_id, long receiver_id) throws Exception {
+    public synchronized void sendPingMessage(InetAddress ip, int port, long sender_id, long receiver_id) throws Exception {
         Message.PingMessage message = new Message.PingMessage();
 
         try { send(message, ip, port, sender_id, receiver_id);}
@@ -61,7 +61,17 @@ public class Socket implements ChannelProvider {
     }
 
     @Override
-    public void sendAcceptMessage(InetAddress ip, int port, long sender_id, long receiver_id) throws Exception {
+    public synchronized void sendJoinMessage(InetAddress ip, int port, String name, boolean onlyView, Data.PlayerType type) throws Exception {
+        Message.JoinMessage message = new Message.JoinMessage(type, onlyView, name);
+
+        try { send(message, ip, port, -1, -1);}
+        catch (IOException e) {
+            throw new SocketException("I/O exception while sending join message");
+        }
+    }
+
+    @Override
+    public synchronized void sendAcceptMessage(InetAddress ip, int port, long sender_id, long receiver_id) throws Exception {
         Message.AcceptMessage message = new Message.AcceptMessage();
 
         try {send(message, ip, port, sender_id, receiver_id);}

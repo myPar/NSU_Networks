@@ -8,12 +8,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 // Game controller - handler of game commands
 public class Controller implements ControllerInterface, Runnable {
-    private final int queueCapacity = 20;
+    private final int queueCapacity = 10;
     private ControllerUser controllerUser;
     private boolean running = true;
-    private final int sleepDeltaTime = 1;
 
     // Thread-safe queue of User commands
+    // GUI thread - add command to queue, Controller thread remove commands and sends it to Model
     private LinkedBlockingQueue<UserCommand> commandQueue;
 
     @Override
@@ -24,12 +24,6 @@ public class Controller implements ControllerInterface, Runnable {
             System.err.println("Fatal - interrupted exception while putting command in command queue");
             System.exit(1);
         }
-    }
-    private List<UserCommand> extractAllCommands() {
-        LinkedList<UserCommand> dstCommandList = new LinkedList<UserCommand>();
-        commandQueue.drainTo(dstCommandList);
-
-        return dstCommandList;
     }
 
     public Controller(ControllerUser user) {
@@ -45,11 +39,9 @@ public class Controller implements ControllerInterface, Runnable {
     public void run() {
         while(running) {
             try {
-                Thread.sleep(sleepDeltaTime);
-                // controller user handles
-                controllerUser.handleCommands(extractAllCommands());
+                controllerUser.handleCommand(commandQueue.take());
             } catch (InterruptedException e) {
-                System.out.println("Fatal - interrupted exception while thread sleeps in Controller's run() method");
+                System.out.println("Fatal: Interupted exception while taking an item from command queue");
                 System.exit(1);
             }
         }

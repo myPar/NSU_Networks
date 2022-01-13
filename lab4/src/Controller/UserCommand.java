@@ -2,7 +2,7 @@ package Controller;
 
 public class UserCommand {
     public static class CHOOSE_GAME extends UserCommand {
-        final String selected_item;
+        public final String selected_item;
 
         public CHOOSE_GAME(String selected_game) {
             this.type = Type.CHOOSE_GAME;

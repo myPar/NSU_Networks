@@ -6,5 +6,5 @@ import java.util.List;
 
 // interface for handling controller messages
 public interface ControllerUser {
-    void handleCommands(List<UserCommand> command);
+    void handleCommand(UserCommand command);
 }
