@@ -1,0 +1,6 @@
+# add console handler
+handlers = java.util.logging.ConsoleHandler
+# console handler config
+java.util.logging.ConsoleHandler.level = ALL
+java.util.logging.ConsoleHandler.pattern = log.log
+java.util.logging.ConsoleHandler.formatter = java.util.logging.SimpleFormatter

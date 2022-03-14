@@ -1,0 +1,8 @@
+# add file handler
+handlers = java.util.logging.FileHandler
+# configure console handler
+java.util.logging.FileHandler.level = ALL
+java.util.logging.FileHandler.formatter = java.util.logging.SimpleFormatter
+java.util.logging.FileHandler.limit = 1000000
+java.util.logging.FileHandler.append = false
+java.util.logging.FileHandler.pattern = log_info%g.log
