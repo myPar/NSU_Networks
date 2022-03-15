@@ -20,7 +20,7 @@ public class Main {
         workflowLogger.log(Level.INFO, "message1");
 
         assert exceptionLogger != null;
-        //exceptionLogger.log(Level.INFO, "message22");
+        exceptionLogger.log(Level.INFO, "message22");
     }
 
 }

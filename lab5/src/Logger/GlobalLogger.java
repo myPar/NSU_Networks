@@ -1,10 +1,8 @@
 package Logger;
 
 import java.io.IOException;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.Calendar;
+import java.util.logging.*;
 
 // logger class which can have only two instances - exception logger and workflow logger
 public class GlobalLogger {
@@ -44,17 +42,36 @@ public class GlobalLogger {
             case EXCEPTION_LOGGER: {
                 logger = Logger.getLogger("ExceptionLogger");
                 logger.setUseParentHandlers(false);
-                logger.addHandler(new FileHandler("exceptions_%g.log"));
+                // config handler
+                FileHandler handler = new FileHandler("exceptions_%u.log");
+                handler.setFormatter(new SimpleFormatter());
+                // add handler to logger
+                logger.addHandler(handler);
                 break;
             }
             case WORKFLOW_LOGGER: {
                 logger = Logger.getLogger("WorkflowLogger");
                 logger.setUseParentHandlers(false);
-                logger.addHandler(new ConsoleHandler());
+                // config handler
+                ConsoleHandler handler = new ConsoleHandler();
+                handler.setFormatter(new SimpleFormatter());
+                // add handler to logger
+                logger.addHandler(handler);
                 break;
             }
             default:
                 assert false;
+        }
+    }
+    private static class SimpleFormatter extends Formatter {
+        @Override
+        public String format(LogRecord logRecord) {
+            Calendar calendar = Calendar.getInstance(); // set current date and time
+            String date = calendar.get(Calendar.DATE) + "." + calendar.get(Calendar.MONTH) +
+                    "." + calendar.get(Calendar.YEAR) + " " + calendar.get(Calendar.HOUR) +
+                    ":" + calendar.get(Calendar.MINUTE) + ":" + calendar.get(Calendar.SECOND);
+            // log message represents: date + level + message
+            return date + "\n" + logRecord.getLevel() + ": " + logRecord.getMessage();
         }
     }
     public void setMode(Mode mode) {
