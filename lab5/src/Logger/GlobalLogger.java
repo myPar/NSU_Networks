@@ -17,7 +17,7 @@ public class GlobalLogger {
         private static GlobalLogger exceptionLogger;
         private static GlobalLogger workflowLogger;
 
-        public static GlobalLogger getLogger(LoggerType type) throws IOException {
+        public static GlobalLogger getLogger(LoggerType type) {
             switch (type) {
                 case WORKFLOW_LOGGER: {
                     if (workflowLogger == null) {
@@ -37,13 +37,19 @@ public class GlobalLogger {
             return null;
         }
     }
-    private GlobalLogger(LoggerType type) throws IOException {
+    private GlobalLogger(LoggerType type) {
         switch (type) {
             case EXCEPTION_LOGGER: {
                 logger = Logger.getLogger("ExceptionLogger");
                 logger.setUseParentHandlers(false);
                 // config handler
-                FileHandler handler = new FileHandler("exceptions_%u.log");
+                FileHandler handler = null;
+                try {
+                    handler = new FileHandler("exceptions_%u.log");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
                 handler.setFormatter(new SimpleFormatter());
                 // add handler to logger
                 logger.addHandler(handler);
