@@ -4,15 +4,13 @@ package Core;
 import Attachments.BaseAttachment;
 import Exceptions.ServerException;
 import Handlers.HandlerFactory;
+import Logger.ExceptionLogger;
 import Logger.GlobalLogger;
 import Attachments.BaseAttachment.KeyState;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Set;
 import Handlers.Handler;
@@ -54,7 +52,7 @@ public class Server {
             serverChannel.register(selector, SelectionKey.OP_ACCEPT, new BaseAttachment(KeyState.ACCEPT));
         }
         catch (IOException e) {
-            throw new ServerException(null, "");
+            ExceptionLogger.logException(e, exceptionLogger);
         }
     }
     private void initDatagramChannel() throws ServerException {
@@ -64,22 +62,29 @@ public class Server {
             udpChannel.register(selector, SelectionKey.OP_READ, new BaseAttachment(KeyState.DNS_RESPONSE));
         }
         catch (IOException e) {
-            throw new ServerException(null, "");
+            ExceptionLogger.logException(e, exceptionLogger);
         }
     }
 
     // main handle loop
     private void handleClients() {
         while(!Server.stopped) {
-            Set<SelectionKey> selectedKeys = selector.selectedKeys();
-            Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
+            try {
+                if(selector.select() > 0) {
+                    Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                    Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
 
-            SelectionKey curKey;
-            while(keyIterator.hasNext()) {
-                curKey = keyIterator.next();
-                // remove key from set to prevent handling it twice (selector doesn't remove key by itself)
-                keyIterator.remove();
-                handle(curKey);
+                    SelectionKey curKey;
+                    while (keyIterator.hasNext()) {
+                        curKey = keyIterator.next();
+                        // remove key from set to prevent handling it twice (selector doesn't remove key by itself)
+                        keyIterator.remove();
+                        handle(curKey);
+                    }
+                }
+            }
+            catch(Exception e) {
+                ExceptionLogger.logException(e, exceptionLogger);
             }
         }
         closeChannels();
@@ -89,13 +94,29 @@ public class Server {
     }
     // handle single key method
     private void handle(SelectionKey key) {
-        BaseAttachment attachment = (BaseAttachment) key.attachment();
         Handler keyHandler = HandlerFactory.getHandler(key);
         keyHandler.handle(key);
     }
-    // close all channels
+    // close all channels (server interrupt case)
     private void closeChannels() {
-
+        Set<SelectionKey> keys = selector.keys();
+        // close all registered channels:
+        for (SelectionKey key: keys) {
+            SelectableChannel channel = key.channel();
+            try {
+                channel.close();
+            }
+            catch (IOException e) {
+                ExceptionLogger.logException(e, exceptionLogger);   // TODO log Server exception instead of I/O exception
+            }
+        }
+        // close the selector:
+        try {
+            selector.close();
+        }
+        catch (IOException e) {
+            ExceptionLogger.logException(e, exceptionLogger);
+        }
     }
 
     // main server start method
@@ -106,7 +127,7 @@ public class Server {
             try {
                 instance = new Server(port, mode);
             } catch (ServerException e) {
-                Server.exceptionLogger.log(Level.WARNING, e.getBaseMessage());
+                ExceptionLogger.logException(e, exceptionLogger);
                 System.exit(1);
             }
             instance.handleClients();
