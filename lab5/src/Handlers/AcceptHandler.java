@@ -1,6 +1,7 @@
 package Handlers;
 
 import Attachments.BaseAttachment;
+import Attachments.CompleteAttachment;
 import Exceptions.HandlerException;
 import Exceptions.HandlerException.Classes;
 import Exceptions.HandlerException.Types;
@@ -11,6 +12,7 @@ import java.nio.channels.*;
 public class AcceptHandler implements Handler {
     @Override
     public void handle(SelectionKey key) throws HandlerException {
+        assert key != null;
         try {
             SelectableChannel channel = key.channel();
             assert channel instanceof ServerSocketChannel;
@@ -22,7 +24,7 @@ public class AcceptHandler implements Handler {
             SocketChannel clientChannel = serverChannel.accept();
             clientChannel.configureBlocking(false);
             // register channel on read initial request
-            clientChannel.register(selector, SelectionKey.OP_READ, new BaseAttachment(BaseAttachment.KeyState.INIT_REQUEST));
+            clientChannel.register(selector, SelectionKey.OP_READ, new CompleteAttachment(BaseAttachment.KeyState.INIT_REQUEST, true));
         }
         catch (IOException e) {
             throw new HandlerException(Classes.ACCEPT, "can't accept new client", Types.IO);

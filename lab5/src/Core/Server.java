@@ -2,6 +2,7 @@ package Core;
 
 
 import Attachments.BaseAttachment;
+import Exceptions.HandlerException;
 import Exceptions.ServerException;
 import Handlers.HandlerFactory;
 import Logger.ExceptionLogger;
@@ -93,7 +94,7 @@ public class Server {
         Server.started = false;
     }
     // handle single key method
-    private void handle(SelectionKey key) {
+    private void handle(SelectionKey key) throws Exception {
         Handler keyHandler = HandlerFactory.getHandler(key);
         keyHandler.handle(key);
     }
@@ -124,13 +125,23 @@ public class Server {
         if (!Server.started) {
             Server.started = true;
             Server instance = null;
+
+            // create server instance:
             try {
                 instance = new Server(port, mode);
-            } catch (ServerException e) {
+            } catch (Exception e) {
                 ExceptionLogger.logException(e, exceptionLogger);
                 System.exit(1);
             }
-            instance.handleClients();
+            // handle clients:
+            try {
+                instance.handleClients();
+            }
+            catch (Exception e) {
+                ExceptionLogger.logException(e, exceptionLogger);
+                instance.closeChannels();
+                System.exit(1);
+            }
         }
     }
     // stopping the server

@@ -9,8 +9,6 @@ public class ServerException extends BaseException {
         public final String getValue() {return value;}
     }
     public ServerException(ServerExceptionType type, String dscr) {
-        this.description = dscr;
-        this.exceptionType = type.getValue();
-        this.exceptionClass = "server";
+        super("server", dscr, type.getValue());
     }
 }

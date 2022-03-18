@@ -1,5 +1,11 @@
 package SOCKS;
 
+import Exceptions.SocksException;
+import Exceptions.SocksException.Classes;
+import Exceptions.SocksException.Types;
+
+import java.lang.reflect.Type;
+
 public class SOCKSv5 {
     // Socks version, here - 5'th
     private static final byte SOCKS_VERSION = 0x05;
@@ -28,7 +34,39 @@ public class SOCKSv5 {
     private static final int AUTH_METHODS_COUNT = 1;
 
     // methods for getting server response data:
-    public static byte[] getInitResponse() {
+    public static byte[] getSuccessInitResponse() {
         return new byte[]{SOCKS_VERSION, AUTH_METHOD};
+    }
+    public static byte[] getFailedInitResponse() {
+        return new byte[]{SOCKS_VERSION, UNSUPPORTED_AUTH_METHOD};
+    }
+    // throws SOCKS exception if 'init message' is invalid
+    public static void parseInitRequest(byte[] data) throws SocksException {
+        if (data.length < 2) {
+            throw new SocksException(Classes.INIT_RQST, "invalid request message size", Types.FORMAT);
+        }
+        if (data[0] != SOCKS_VERSION) {
+            throw new SocksException(Classes.INIT_RQST, "invalid socks version", Types.VERSION);
+        }
+        if (data[1] <= 0) {
+            throw new SocksException(Classes.INIT_RQST, "invalid authentication methods count", Types.FORMAT);
+        }
+        int count = data[1];    // authentication methods count
+
+        // check data size:
+        if (data.length != 2 + count) {
+            throw new SocksException(Classes.INIT_RQST, "invalid request message size", Types.FORMAT);
+        }
+        // heck 'no auth required' method supporting:
+        boolean found = false;
+        for (int i = 2; i < count; i++) {
+            if (data[i] == AUTH_METHOD) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            throw new SocksException(Classes.INIT_RQST, "suggested auth methods are not supported", Types.AUTH);
+        }
     }
 }

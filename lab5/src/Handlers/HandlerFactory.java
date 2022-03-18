@@ -10,6 +10,7 @@ import java.nio.channels.SelectionKey;
 public class HandlerFactory {
     private static AcceptHandler acceptHandler;
     private static InitRequestHandler initRequestHandler;
+    private static InitResponseHandler initResponseHandler;
 
     public static Handler getHandler(SelectionKey key) {
         BaseAttachment attachment = (BaseAttachment) key.attachment();
@@ -28,6 +29,12 @@ public class HandlerFactory {
                 }
                 result = initRequestHandler;
                 break;
+            case INIT_RESPONSE_FAILED:
+            case INIT_RESPONSE_SUCCESS:
+                if (initResponseHandler == null) {
+                    initResponseHandler = new InitResponseHandler();
+                }
+                result = initResponseHandler;
             default:
                 assert false;
         }

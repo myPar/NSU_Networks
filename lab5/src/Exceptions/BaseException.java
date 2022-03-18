@@ -12,4 +12,10 @@ public class BaseException extends Exception {
     public String getBaseMessage() {
         return exceptionClass + " exception: " + exceptionType + " - " + description;
     }
+
+    public BaseException(String cls, String dscr, String type) {
+        this.description = dscr;
+        this.exceptionClass = cls;
+        this.exceptionType = type;
+    }
 }
