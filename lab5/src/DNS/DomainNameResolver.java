@@ -9,5 +9,5 @@ public class DomainNameResolver {
     // key - domain name; value - resolved ip address
     private HashMap<String, String> resolvedDomainNameMap;
 
-    
+
 }
