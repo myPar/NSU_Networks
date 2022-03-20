@@ -5,6 +5,9 @@ import Exceptions.SocksException.Classes;
 import Exceptions.SocksException.Types;
 
 import java.lang.reflect.Type;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Arrays;
 
 public class SOCKSv5 {
     // Socks version, here - 5'th
@@ -32,6 +35,8 @@ public class SOCKSv5 {
     private static final int IPV4_SIZE = 4;
     private static final int IPV6_SIZE = 16;
     private static final int AUTH_METHODS_COUNT = 1;
+    private static final int INIT_MSG_HEADER_SIZE = 2;
+    private static final int CONNECT_MSG_BASE_SIZE = 6;
 
     // methods for getting server response data:
     public static byte[] getSuccessInitResponse() {
@@ -42,7 +47,7 @@ public class SOCKSv5 {
     }
     // throws SOCKS exception if 'init message' is invalid
     public static void parseInitRequest(byte[] data) throws SocksException {
-        if (data.length < 2) {
+        if (data.length < INIT_MSG_HEADER_SIZE) {
             throw new SocksException(Classes.INIT_RQST, "invalid request message size", Types.FORMAT);
         }
         if (data[0] != SOCKS_VERSION) {
@@ -54,12 +59,12 @@ public class SOCKSv5 {
         int count = data[1];    // authentication methods count
 
         // check data size:
-        if (data.length != 2 + count) {
+        if (data.length != INIT_MSG_HEADER_SIZE + count) {
             throw new SocksException(Classes.INIT_RQST, "invalid request message size", Types.FORMAT);
         }
-        // heck 'no auth required' method supporting:
+        // check 'no auth required' method supporting:
         boolean found = false;
-        for (int i = 2; i < count; i++) {
+        for (int i = INIT_MSG_HEADER_SIZE; i < count; i++) {
             if (data[i] == AUTH_METHOD) {
                 found = true;
                 break;
@@ -68,5 +73,54 @@ public class SOCKSv5 {
         if (!found) {
             throw new SocksException(Classes.INIT_RQST, "suggested auth methods are not supported", Types.AUTH);
         }
+    }
+    public final ConnectionMessage parseConnectRequest(byte[] msg) throws SocksException {
+        if (msg.length < CONNECT_MSG_BASE_SIZE) {
+            throw new SocksException(Classes.CONNECT_RQST, "invalid connect message format", Types.FORMAT);
+        }
+        if (msg[0] != SOCKS_VERSION) {
+            throw new SocksException(Classes.CONNECT_RQST, "invalid socks version", Types.VERSION);
+        }
+        if (msg[1] != ESTABLISH_TCP) {
+            throw new SocksException(Classes.CONNECT_RQST, "unsupported operation", Types.VERSION);
+        }
+        if (msg[2] != RESERVED) {
+            throw new SocksException(Classes.CONNECT_RQST, "invalid reserved byte", Types.FORMAT);
+        }
+        int addressType = msg[3];
+        String address;
+        byte[] addressData = null;
+        try {
+            switch (addressType) {
+                case IPV4:
+                    addressData = Arrays.copyOfRange(msg, 4, 4 + IPV4_SIZE);
+                    break;
+                case IPV6:
+                    addressData = Arrays.copyOfRange(msg, 4, 4 + IPV6_SIZE);
+                    break;
+                case DN:
+                    // TODO Domain Name resolving
+                default:
+                    assert false;
+            }
+            address = InetAddress.getByAddress(addressData).getHostAddress();
+        }
+        catch (UnknownHostException e) {
+            throw new SocksException(Classes.CONNECT_RQST, "invalid ip-address of destination host", Types.HOST_IP);
+        }
+        return new
+    }
+    //
+    private String getIP(byte[] data) throws SocksException {
+        assert data.length == 4 || data.length == 6;
+        String result;
+        try {
+            InetAddress address = InetAddress.getByAddress(data);
+            result = address.getHostAddress();
+        }
+        catch (UnknownHostException e) {
+            throw new SocksException(Classes.CONNECT_RQST, "invalid IP address", Types.HOST_IP);
+        }
+        return result;
     }
 }

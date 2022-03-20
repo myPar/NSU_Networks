@@ -2,6 +2,7 @@ package Handlers;
 
 import Attachments.CompleteAttachment;
 import Attachments.BaseAttachment.KeyState;
+import Exceptions.SocksException;
 import SOCKS.SOCKSv5;
 
 import java.nio.ByteBuffer;
@@ -25,11 +26,19 @@ public class InitRequestHandler implements Handler {
         if (clientChannel.read(buffer) == -1) {
             buffer.flip();
             // end-of-stream reached
-            SOCKSv5.parseInitRequest(Arrays.copyOf(buffer.array(), buffer.limit()));    // exception can be thrown
+            try {
+                SOCKSv5.parseInitRequest(Arrays.copyOf(buffer.array(), buffer.limit()));    // exception can be thrown
+            }
+            catch (SocksException e) {
+                // set new state to the channel:
+                key.interestOps(SelectionKey.OP_WRITE);
+                attachment.setState(KeyState.INIT_RESPONSE_FAILED);
+                throw e;
+            }
             buffer.clear();
         }
         // set new state to the channel:
         key.interestOps(SelectionKey.OP_WRITE);
-        attachment.setState(KeyState.INIT_RESPONSE);
+        attachment.setState(KeyState.INIT_RESPONSE_SUCCESS);
     }
 }

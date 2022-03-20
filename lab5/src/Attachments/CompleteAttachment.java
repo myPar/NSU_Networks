@@ -5,9 +5,10 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 
 public class CompleteAttachment extends BaseAttachment {
-    private ByteBuffer in;
-    private ByteBuffer out;
+    private ByteBuffer in;                          // data which was read from channel placed here
+    private ByteBuffer out;                         // data which will wrote to channel placed here
     private SelectableChannel remoteChannel;
+    public boolean isRespWroteToBuffer = false;    // is response data placed to out buffer
 
     public CompleteAttachment(KeyState state, boolean initBuffers) {
         super(state);
