@@ -4,7 +4,6 @@ import Exceptions.SocksException;
 import Exceptions.SocksException.Classes;
 import Exceptions.SocksException.Types;
 
-import java.lang.reflect.Type;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -74,8 +73,9 @@ public class SOCKSv5 {
             throw new SocksException(Classes.INIT_RQST, "suggested auth methods are not supported", Types.AUTH);
         }
     }
-    // throws SOCKS exception if 'connection request' message is invalid
+    // parses byte array of connection request message, throws SOCKS exception if message is invalid
     public final ConnectionMessage parseConnectRequest(byte[] msg) throws SocksException {
+        // check header:
         if (msg.length < CONNECT_MSG_BASE_SIZE) {
             throw new SocksException(Classes.CONNECT_RQST, "invalid connect message format", Types.FORMAT);
         }
@@ -88,30 +88,35 @@ public class SOCKSv5 {
         if (msg[2] != RESERVED) {
             throw new SocksException(Classes.CONNECT_RQST, "invalid reserved byte", Types.FORMAT);
         }
-        int addressType = msg[3];
-        String address;
-        byte[] addressData = null;
-        try {
-            switch (addressType) {
-                case IPV4:
-                    addressData = Arrays.copyOfRange(msg, 4, 4 + IPV4_SIZE);
-                    break;
-                case IPV6:
-                    addressData = Arrays.copyOfRange(msg, 4, 4 + IPV6_SIZE);
-                    break;
-                case DN:
-                    // TODO Domain Name resolving
-                default:
-                    assert false;
-            }
-            address = InetAddress.getByAddress(addressData).getHostAddress();
+        byte addressType = msg[3];
+        byte commandCode = msg[1];
+        String address = null;
+
+        // getting address value:
+        switch (addressType) {
+            case IPV4:
+                checkMsgSize(msg, IPV4_SIZE + CONNECT_MSG_BASE_SIZE);
+                address = getIP(Arrays.copyOfRange(msg, 4, 4 + IPV4_SIZE));
+                break;
+            case IPV6:
+                checkMsgSize(msg, IPV6_SIZE + CONNECT_MSG_BASE_SIZE);
+                address = getIP(Arrays.copyOfRange(msg, 4, 4 + IPV6_SIZE));
+                break;
+            case DN:
+                int nameLength = msg[4];
+                checkMsgSize(msg, CONNECT_MSG_BASE_SIZE + nameLength + 1);
+                address = new String(Arrays.copyOfRange(msg, 5, 5 + nameLength));
+            default:
+                assert false;
         }
-        catch (UnknownHostException e) {
-            throw new SocksException(Classes.CONNECT_RQST, "invalid ip-address of destination host", Types.HOST_IP);
-        }
-        return new
+
+        // getting port:
+        int lastIdx = msg.length - 1;
+        int port = getPort(msg[lastIdx - 1], msg[lastIdx]);
+
+        return new ConnectionMessage(commandCode, addressType, address, port);
     }
-    //
+    // decode ip address from byte array
     private String getIP(byte[] data) throws SocksException {
         assert data.length == 4 || data.length == 6;
         String result;
@@ -120,8 +125,18 @@ public class SOCKSv5 {
             result = address.getHostAddress();
         }
         catch (UnknownHostException e) {
-            throw new SocksException(Classes.CONNECT_RQST, "invalid IP address", Types.HOST_IP);
+            throw new SocksException(Classes.CONNECT_RQST, "invalid ip-address of destination host", Types.HOST_IP);
         }
         return result;
+    }
+    // return int value of port
+    private int getPort(byte b1, byte b2) {
+        return (b1 << 8) | b2;
+    }
+    // check msg size and trow exception if it is invalid
+    private void checkMsgSize(byte[] msg, int size) throws SocksException {
+        if (msg.length != size) {
+            throw new SocksException(Classes.CONNECT_RQST, "invalid message size", Types.FORMAT);
+        }
     }
 }
