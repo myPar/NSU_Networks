@@ -2,20 +2,20 @@ package Core;
 
 
 import Attachments.BaseAttachment;
-import Exceptions.HandlerException;
+import Attachments.BaseAttachment.KeyState;
+import Attachments.DnsAttachment;
+import DNS.DomainNameResolver;
 import Exceptions.ServerException;
+import Handlers.Handler;
 import Handlers.HandlerFactory;
 import Logger.ExceptionLogger;
 import Logger.GlobalLogger;
-import Attachments.BaseAttachment.KeyState;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Set;
-import Handlers.Handler;
-import java.util.logging.Level;
 //TODO: write exceptions descriptions
 //TODO: write logging
 
@@ -60,7 +60,8 @@ public class Server {
         try {
             DatagramChannel udpChannel = DatagramChannel.open();
             udpChannel.configureBlocking(false);
-            udpChannel.register(selector, SelectionKey.OP_READ, new BaseAttachment(KeyState.DNS_RESPONSE));
+            udpChannel.register(selector, SelectionKey.OP_READ, new DnsAttachment(KeyState.DNS_RESPONSE));
+            DomainNameResolver.createResolver(udpChannel);  // init domain name resolver
         }
         catch (IOException e) {
             ExceptionLogger.logException(e, exceptionLogger);

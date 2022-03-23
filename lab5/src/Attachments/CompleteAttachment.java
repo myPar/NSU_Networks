@@ -1,6 +1,7 @@
 package Attachments;
 import Core.Constants;
 
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 
@@ -9,6 +10,8 @@ public class CompleteAttachment extends BaseAttachment {
     private ByteBuffer out;                         // data which will wrote to channel placed here
     private SelectableChannel remoteChannel;
     public boolean isRespWroteToBuffer = false;    // is response data placed to out buffer
+
+    private InetSocketAddress remoteChannelAddress = null;    // remote channel address placed here
 
     public CompleteAttachment(KeyState state, boolean initBuffers) {
         super(state);
@@ -25,4 +28,7 @@ public class CompleteAttachment extends BaseAttachment {
     public SelectableChannel getRemoteChannel(){return remoteChannel;}
     public ByteBuffer getIn() {return in;}
     public ByteBuffer getOut() {return out;}
+
+    public void setRemoteAddress(InetSocketAddress address) {this.remoteChannelAddress = address;}
+    public InetSocketAddress getRemoteAddress() {return this.remoteChannelAddress;}
 }

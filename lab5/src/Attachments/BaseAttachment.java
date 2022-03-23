@@ -10,7 +10,7 @@ public class BaseAttachment {
         CONNECT_REQUEST,            // client channel state - reading 'Connection request' msg from channel
         CONNECT_RESPONSE_SUCCESS,   // client channel state - writing success connection response to channel
         CONNECT_RESPONSE_FAILED,    // client channel state - writing failed connection response to channel
-        REMOTE_CONNECT,             // remote channel state - finish the connection of remote channel
+        FINISH_REMOTE_CONNECT,      // remote channel state - finish the connection of remote channel
         DNS_RESPONSE                // datagram channel state - getting response from dns server
     }
     protected KeyState state;

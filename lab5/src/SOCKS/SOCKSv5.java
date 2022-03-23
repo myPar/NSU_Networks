@@ -74,6 +74,7 @@ public class SOCKSv5 {
             throw new SocksException(Classes.INIT_RQST, "suggested auth methods are not supported", Types.AUTH);
         }
     }
+    // throws SOCKS exception if 'connection request' message is invalid
     public final ConnectionMessage parseConnectRequest(byte[] msg) throws SocksException {
         if (msg.length < CONNECT_MSG_BASE_SIZE) {
             throw new SocksException(Classes.CONNECT_RQST, "invalid connect message format", Types.FORMAT);

@@ -12,8 +12,6 @@ public class HandlerException extends BaseException {
     }
 
     public HandlerException(String cls, String dscr, String type) {
-        this.description = dscr;
-        this.exceptionClass = cls;
-        this.exceptionType = type;
+        super(cls, dscr, type);
     }
 }
