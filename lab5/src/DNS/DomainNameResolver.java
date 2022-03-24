@@ -128,7 +128,7 @@ public class DomainNameResolver extends Thread {
 
             // address is resolved so can establish the connection to remote channel
             CompleteAttachment attachment = (CompleteAttachment) keyData.key.attachment();
-            attachment.setRemoteAddress(new InetSocketAddress(address, keyData.port));
+            attachment.setRemoteAddress(AddressGetter.getAddress(address, keyData.port));
 
             HandlerFactory.getConnector().connectToChannel(keyData.key);
         }

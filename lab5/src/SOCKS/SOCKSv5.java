@@ -1,11 +1,16 @@
 package SOCKS;
 
+import Attachments.BaseAttachment.KeyState;
+import Attachments.CompleteAttachment;
+import Core.Constants;
 import Exceptions.SocksException;
 import Exceptions.SocksException.Classes;
 import Exceptions.SocksException.Types;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class SOCKSv5 {
@@ -21,9 +26,9 @@ public class SOCKSv5 {
     private static final byte UNSUPPORTED_AUTH_METHOD = (byte) 0xff;
 
     // Inet Addresses types:
-    private static final byte IPV4 = 0x01;
-    private static final byte IPV6 = 0x04;
-    private static final byte DN = 0x03;
+    public static final byte IPV4 = 0x01;
+    public static final byte IPV6 = 0x04;
+    public static final byte DN = 0x03;
 
     //server response codes:
     private static final byte REQUEST_PROVIDED = 0x00;
@@ -43,6 +48,9 @@ public class SOCKSv5 {
     }
     public static byte[] getFailedInitResponse() {
         return new byte[]{SOCKS_VERSION, UNSUPPORTED_AUTH_METHOD};
+    }
+    public static byte[] getConnectionResponse(CompleteAttachment keyAttachment) {
+
     }
     // throws SOCKS exception if 'init message' is invalid
     public static void parseInitRequest(byte[] data) throws SocksException {
@@ -74,7 +82,7 @@ public class SOCKSv5 {
         }
     }
     // parses byte array of connection request message, throws SOCKS exception if message is invalid
-    public final ConnectionMessage parseConnectRequest(byte[] msg) throws SocksException {
+    public static ConnectionMessage parseConnectRequest(byte[] msg) throws SocksException {
         // check header:
         if (msg.length < CONNECT_MSG_BASE_SIZE) {
             throw new SocksException(Classes.CONNECT_RQST, "invalid connect message format", Types.FORMAT);
@@ -109,7 +117,6 @@ public class SOCKSv5 {
             default:
                 assert false;
         }
-
         // getting port:
         int lastIdx = msg.length - 1;
         int port = getPort(msg[lastIdx - 1], msg[lastIdx]);
@@ -117,7 +124,7 @@ public class SOCKSv5 {
         return new ConnectionMessage(commandCode, addressType, address, port);
     }
     // decode ip address from byte array
-    private String getIP(byte[] data) throws SocksException {
+    private static String getIP(byte[] data) throws SocksException {
         assert data.length == 4 || data.length == 6;
         String result;
         try {
@@ -130,11 +137,18 @@ public class SOCKSv5 {
         return result;
     }
     // return int value of port
-    private int getPort(byte b1, byte b2) {
-        return (b1 << 8) | b2;
+    private static int getPort(byte b1, byte b2) {
+        return (b1 << Constants.BYTE_SIZE) | b2;
+    }
+    // return two bytes of the port
+    public static byte[] getPortBytes(int port) {
+        int size = Constants.INT_SIZE;
+        byte[] data = ByteBuffer.allocate(size).putInt(port).array();
+
+        return new byte[]{data[size - 2], data[size - 1]};
     }
     // check msg size and trow exception if it is invalid
-    private void checkMsgSize(byte[] msg, int size) throws SocksException {
+    private static void checkMsgSize(byte[] msg, int size) throws SocksException {
         if (msg.length != size) {
             throw new SocksException(Classes.CONNECT_RQST, "invalid message size", Types.FORMAT);
         }

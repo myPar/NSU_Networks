@@ -12,7 +12,9 @@ public class HandlerFactory {
     private static InitRequestHandler initRequestHandler;
     private static InitResponseHandler initResponseHandler;
     private static ConnectionRequestHandler connectionRequestHandler;
+    private static ConnectionResponseHandler connectionResponseHandler;
     private static DnsResponseHandler dnsResponseHandler;
+    private static FinishConnectionHandler finishConnectionHandler;
 
     public static Handler getHandler(SelectionKey key) {
         BaseAttachment attachment = (BaseAttachment) key.attachment();
@@ -38,6 +40,12 @@ public class HandlerFactory {
                 }
                 result = initResponseHandler;
                 break;
+            case CONNECT_RESPONSE_FAILED:
+            case CONNECT_RESPONSE_SUCCESS:
+                if(connectionResponseHandler == null) {
+                    connectionResponseHandler = new ConnectionResponseHandler();
+                }
+                result = connectionResponseHandler;
             case CONNECT_REQUEST:
                 if (connectionRequestHandler == null) {
                     connectionRequestHandler = new ConnectionRequestHandler();
@@ -49,6 +57,12 @@ public class HandlerFactory {
                     dnsResponseHandler = new DnsResponseHandler();
                 }
                 result = dnsResponseHandler;
+                break;
+            case FINISH_REMOTE_CONNECT:
+                if (finishConnectionHandler == null) {
+                    finishConnectionHandler = new FinishConnectionHandler();
+                }
+                result = finishConnectionHandler;
                 break;
             default:
                 assert false;

@@ -1,9 +1,9 @@
 package Exceptions;
 
 public class BaseException extends Exception {
-    protected String exceptionClass;
-    protected String exceptionType;
-    protected String description;
+    private String exceptionClass;
+    private String exceptionType;
+    private String description;
 
     protected final String getExceptionClass() {return exceptionClass;}
     protected final String getExceptionType() {return exceptionType;}
@@ -13,7 +13,7 @@ public class BaseException extends Exception {
         return exceptionClass + " exception: " + exceptionType + " - " + description;
     }
 
-    public BaseException(String cls, String dscr, String type) {
+    BaseException(String cls, String dscr, String type) {
         this.description = dscr;
         this.exceptionClass = cls;
         this.exceptionType = type;

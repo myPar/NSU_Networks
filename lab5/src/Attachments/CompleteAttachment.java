@@ -12,6 +12,7 @@ public class CompleteAttachment extends BaseAttachment {
     public boolean isRespWroteToBuffer = false;    // is response data placed to out buffer
 
     private InetSocketAddress remoteChannelAddress = null;    // remote channel address placed here
+    private ConnectionRequestData connectionRequestData = null;
 
     public CompleteAttachment(KeyState state, boolean initBuffers) {
         super(state);
@@ -21,11 +22,13 @@ public class CompleteAttachment extends BaseAttachment {
         }
     }
     public void setRemoteChannel(SelectableChannel channel) {remoteChannel = channel;}
+    public void setConnectionRequestData(ConnectionRequestData data) {connectionRequestData = data;}
     public void setIn(ByteBuffer in) {this.in = in;}
     public void setOut(ByteBuffer out) {this.out = out;}
     public void setState(KeyState state) {this.state = state;}
 
     public SelectableChannel getRemoteChannel(){return remoteChannel;}
+    public ConnectionRequestData getConnectionRequestData() {return connectionRequestData;}
     public ByteBuffer getIn() {return in;}
     public ByteBuffer getOut() {return out;}
 
