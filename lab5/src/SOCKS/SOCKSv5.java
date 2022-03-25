@@ -2,15 +2,14 @@ package SOCKS;
 
 import Attachments.BaseAttachment.KeyState;
 import Attachments.CompleteAttachment;
+import Attachments.ConnectionRequestData;
 import Core.Constants;
 import Exceptions.SocksException;
 import Exceptions.SocksException.Classes;
 import Exceptions.SocksException.Types;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class SOCKSv5 {
@@ -50,7 +49,48 @@ public class SOCKSv5 {
         return new byte[]{SOCKS_VERSION, UNSUPPORTED_AUTH_METHOD};
     }
     public static byte[] getConnectionResponse(CompleteAttachment keyAttachment) {
+        ConnectionRequestData requestData = keyAttachment.getConnectionRequestData();
+        byte[] addressBytes = requestData.address;
+        byte addressType = requestData.addressType;
 
+        int responseMessageSize = 0;    // size of response message in bytes
+        byte respCode = -1;                  // server response code
+
+        if (keyAttachment.getState() == KeyState.CONNECT_RESPONSE_FAILED) {
+            respCode = SOCKS_SERVER_EXCEPTION;
+        }
+        else if (keyAttachment.getState() == KeyState.CONNECT_RESPONSE_SUCCESS) {
+            respCode = REQUEST_PROVIDED;
+        }
+        else {assert false;}
+
+        switch (addressType) {
+            case IPV4:
+                responseMessageSize = CONNECT_MSG_BASE_SIZE + IPV4_SIZE;
+                break;
+            case IPV6:
+                responseMessageSize = CONNECT_MSG_BASE_SIZE + IPV6_SIZE;
+                break;
+            case DN:
+                responseMessageSize = CONNECT_MSG_BASE_SIZE + addressBytes.length + 1;
+                break;
+            default:
+                assert false;
+        }
+        byte[] response = new byte[responseMessageSize];
+        // write response:
+        response[0] = SOCKS_VERSION;    //  write header
+        response[1] = respCode;         //
+        response[2] = RESERVED;         //
+        response[3] = addressType;      //
+
+        writeAddressToRespMsg(response, addressBytes, addressType); // write address
+
+        int lastIdx = response.length- 1;               // write port
+        response[lastIdx - 1] = requestData.portByte1;  //
+        response[lastIdx] = requestData.portByte2;      //
+
+        return response;
     }
     // throws SOCKS exception if 'init message' is invalid
     public static void parseInitRequest(byte[] data) throws SocksException {
@@ -98,30 +138,36 @@ public class SOCKSv5 {
         }
         byte addressType = msg[3];
         byte commandCode = msg[1];
+        byte[] addressBytes = null;
         String address = null;
 
         // getting address value:
         switch (addressType) {
             case IPV4:
                 checkMsgSize(msg, IPV4_SIZE + CONNECT_MSG_BASE_SIZE);
-                address = getIP(Arrays.copyOfRange(msg, 4, 4 + IPV4_SIZE));
+                addressBytes = Arrays.copyOfRange(msg, 4, 4 + IPV4_SIZE);
+                address = getIP(addressBytes);
                 break;
             case IPV6:
                 checkMsgSize(msg, IPV6_SIZE + CONNECT_MSG_BASE_SIZE);
-                address = getIP(Arrays.copyOfRange(msg, 4, 4 + IPV6_SIZE));
+                addressBytes = Arrays.copyOfRange(msg, 4, 4 + IPV6_SIZE);
+                address = getIP(addressBytes);
                 break;
             case DN:
                 int nameLength = msg[4];
                 checkMsgSize(msg, CONNECT_MSG_BASE_SIZE + nameLength + 1);
+                addressBytes = Arrays.copyOfRange(msg, 5, 5 + nameLength);
                 address = new String(Arrays.copyOfRange(msg, 5, 5 + nameLength));
             default:
                 assert false;
         }
         // getting port:
         int lastIdx = msg.length - 1;
-        int port = getPort(msg[lastIdx - 1], msg[lastIdx]);
+        byte b1 = msg[lastIdx - 1];
+        byte b2 = msg[lastIdx];
+        int port = getPort(b1, b2);
 
-        return new ConnectionMessage(commandCode, addressType, address, port);
+        return new ConnectionMessage(commandCode, addressType, address, port, new byte[]{b1,b2}, addressBytes);
     }
     // decode ip address from byte array
     private static String getIP(byte[] data) throws SocksException {
@@ -140,6 +186,20 @@ public class SOCKSv5 {
     private static int getPort(byte b1, byte b2) {
         return (b1 << Constants.BYTE_SIZE) | b2;
     }
+    // write address to response message
+    private static void writeAddressToRespMsg(byte[] responseMsg, byte[] addressBytes, byte addressType) {
+        final int stPosition = 4;
+        if (addressType == DN) {
+            byte addressSize = (byte) addressBytes.length;
+            addressBytes[stPosition] = addressSize;
+            System.arraycopy(addressBytes, 0, responseMsg, stPosition + 1, addressSize);
+        }
+        else {
+            int size = addressBytes.length;
+            System.arraycopy(addressBytes, 0, responseMsg, stPosition, size);
+        }
+    }
+    /*
     // return two bytes of the port
     public static byte[] getPortBytes(int port) {
         int size = Constants.INT_SIZE;
@@ -147,6 +207,7 @@ public class SOCKSv5 {
 
         return new byte[]{data[size - 2], data[size - 1]};
     }
+    */
     // check msg size and trow exception if it is invalid
     private static void checkMsgSize(byte[] msg, int size) throws SocksException {
         if (msg.length != size) {

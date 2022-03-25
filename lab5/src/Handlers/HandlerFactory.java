@@ -15,6 +15,8 @@ public class HandlerFactory {
     private static ConnectionResponseHandler connectionResponseHandler;
     private static DnsResponseHandler dnsResponseHandler;
     private static FinishConnectionHandler finishConnectionHandler;
+    private static ProxyingHandler proxyingHandler;
+    private static CloseChannelHandler closeChannelHandler;
 
     public static Handler getHandler(SelectionKey key) {
         BaseAttachment attachment = (BaseAttachment) key.attachment();
@@ -46,6 +48,7 @@ public class HandlerFactory {
                     connectionResponseHandler = new ConnectionResponseHandler();
                 }
                 result = connectionResponseHandler;
+                break;
             case CONNECT_REQUEST:
                 if (connectionRequestHandler == null) {
                     connectionRequestHandler = new ConnectionRequestHandler();
@@ -64,6 +67,12 @@ public class HandlerFactory {
                 }
                 result = finishConnectionHandler;
                 break;
+            case PROXYING:
+                if (proxyingHandler == null) {
+                    proxyingHandler = new ProxyingHandler();
+                }
+                result = proxyingHandler;
+                break;
             default:
                 assert false;
         }
@@ -72,5 +81,11 @@ public class HandlerFactory {
     public static Connector getConnector() {
         assert connectionRequestHandler != null;
         return connectionRequestHandler;
+    }
+    public static Handler getChannelCloser() {
+        if(closeChannelHandler == null) {
+            closeChannelHandler = new CloseChannelHandler();
+        }
+        return closeChannelHandler;
     }
 }

@@ -38,14 +38,18 @@ public class ConnectionRequestHandler implements Handler, Connector {
             buffer.clear();
 
             ConnectionMessage message = SOCKSv5.parseConnectRequest(requestData);
+
+            // get port value and it's bytes:
             int port = message.portNumber;
-            byte[] portBytes = SOCKSv5.getPortBytes(port);
+            byte[] portBytes = message.portBytes;
             assert portBytes.length == 2;
 
+            // get address value and it's bytes:
             String address = message.addressValue;
+            byte[] addressBytes = message.addressBytes;
 
             // add connection request data to attachment; will use in response sending:
-            ConnectionRequestData additionalData = new ConnectionRequestData(portBytes[0], portBytes[1], address, message.AddressType);
+            ConnectionRequestData additionalData = new ConnectionRequestData(portBytes[0], portBytes[1], addressBytes, message.AddressType);
             attachment.setConnectionRequestData(additionalData);
 
             if (message.AddressType == SOCKSv5.DN) {

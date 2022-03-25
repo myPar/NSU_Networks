@@ -35,7 +35,7 @@ public class InitResponseHandler implements Handler {
         clientChannel.write(buffer);
         // change channel state if message wrote
         if (buffer.remaining() <= 0) {
-            attachment.isRespWroteToBuffer = false;
+            attachment.isRespWroteToBuffer = false; // reset flag
             buffer.clear();
             // now register key on reading a connection request
             attachment.setState(KeyState.CONNECT_REQUEST);

@@ -11,7 +11,8 @@ public class BaseAttachment {
         CONNECT_RESPONSE_SUCCESS,   // client channel state - writing success connection response to channel
         CONNECT_RESPONSE_FAILED,    // client channel state - writing failed connection response to channel
         FINISH_REMOTE_CONNECT,      // remote channel state - finish the connection of remote channel
-        DNS_RESPONSE                // datagram channel state - getting response from dns server
+        DNS_RESPONSE,               // datagram channel state - getting response from dns server
+        PROXYING                    // proxying state
     }
     protected KeyState state;
     public KeyState getState() {return state;}

@@ -9,7 +9,6 @@ import Exceptions.HandlerException.Types;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 
 public class FinishConnectionHandler implements Handler {
@@ -21,10 +20,7 @@ public class FinishConnectionHandler implements Handler {
         SocketChannel clientChannel = (SocketChannel) channel;
         CompleteAttachment attachment = (CompleteAttachment) key.attachment();
 
-        // get remote channel and key
-        Selector selector = key.selector();
-        SelectableChannel remoteChannel = attachment.getRemoteChannel();
-        SelectionKey remoteKey = remoteChannel.keyFor(selector);
+        SelectionKey remoteKey = CompleteAttachment.getRemoteChannelKey(key);
         try {
             clientChannel.finishConnect();
         }
@@ -34,7 +30,6 @@ public class FinishConnectionHandler implements Handler {
             throw new HandlerException(Classes.FINISH_CONNECTION, msg, Types.IO);
         }
         key.interestOps(0);
-
         // register remote key on Connection response success
         registerOnConnectionResponse(KeyState.CONNECT_RESPONSE_SUCCESS, remoteKey);
     }

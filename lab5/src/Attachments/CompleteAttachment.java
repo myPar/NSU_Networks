@@ -4,6 +4,8 @@ import Core.Constants;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 
 public class CompleteAttachment extends BaseAttachment {
     private ByteBuffer in;                          // data which was read from channel placed here
@@ -34,4 +36,16 @@ public class CompleteAttachment extends BaseAttachment {
 
     public void setRemoteAddress(InetSocketAddress address) {this.remoteChannelAddress = address;}
     public InetSocketAddress getRemoteAddress() {return this.remoteChannelAddress;}
+
+    // get key of remote channel (remote channel should be existed and registered)
+    public static SelectionKey getRemoteChannelKey(SelectionKey srcKey) {
+        assert srcKey != null;
+        assert srcKey.attachment() != null;
+        assert srcKey.attachment() instanceof CompleteAttachment;
+        CompleteAttachment attachment = (CompleteAttachment) srcKey.attachment();
+
+        Selector selector = srcKey.selector();
+        assert selector != null;
+        return attachment.getRemoteChannel().keyFor(selector);
+    }
 }
