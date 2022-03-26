@@ -2,9 +2,13 @@ package Handlers;
 
 import Attachments.CompleteAttachment;
 import Attachments.BaseAttachment.KeyState;
+import Exceptions.HandlerException;
+import Exceptions.HandlerException.Classes;
+import Exceptions.HandlerException.Types;
 import Exceptions.SocksException;
 import SOCKS.SOCKSv5;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
@@ -23,9 +27,15 @@ public class InitRequestHandler implements Handler {
         CompleteAttachment attachment = (CompleteAttachment) key.attachment();
         ByteBuffer buffer = attachment.getIn();
 
-        if (clientChannel.read(buffer) == -1) {
+        // read data from channel
+        int count;
+        try {count = clientChannel.read(buffer);}
+        catch (IOException e) {
+            throw new HandlerException(Classes.INIT_RQST, "exception while reading data from channel", Types.IO);
+        }
+        // check end-of-stream was reached
+        if (count == -1) {
             buffer.flip();
-            // end-of-stream reached
             try {
                 SOCKSv5.parseInitRequest(Arrays.copyOf(buffer.array(), buffer.limit()));    // exception can be thrown
             }
@@ -36,9 +46,9 @@ public class InitRequestHandler implements Handler {
                 throw e;
             }
             buffer.clear();
+            // set new state to the channel:
+            key.interestOps(SelectionKey.OP_WRITE);
+            attachment.setState(KeyState.INIT_RESPONSE_SUCCESS);
         }
-        // set new state to the channel:
-        key.interestOps(SelectionKey.OP_WRITE);
-        attachment.setState(KeyState.INIT_RESPONSE_SUCCESS);
     }
 }

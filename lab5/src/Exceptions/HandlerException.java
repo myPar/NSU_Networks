@@ -5,8 +5,10 @@ public class HandlerException extends BaseException {
     public static class Classes {
         public static final String ACCEPT = "Accept handler";
         public static final String INIT_RQST = "Init request handler";
+        public static final String INIT_RESPONSE = "Init response handler";
         public static final String CONNECTION_RQST = "Connection request handler";
         public static final String FINISH_CONNECTION = "Finish connection handler";
+        public static final String CLOSE_CHANNEL = "Close channel handler";
     }
     // exception types - types of java exceptions, which handler can produce
     public static class Types {

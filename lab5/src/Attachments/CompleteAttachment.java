@@ -30,6 +30,7 @@ public class CompleteAttachment extends BaseAttachment {
     public void setState(KeyState state) {this.state = state;}
 
     public SelectableChannel getRemoteChannel(){return remoteChannel;}
+    public void removeRemoteChannel() {remoteChannel = null;}
     public ConnectionRequestData getConnectionRequestData() {return connectionRequestData;}
     public ByteBuffer getIn() {return in;}
     public ByteBuffer getOut() {return out;}
