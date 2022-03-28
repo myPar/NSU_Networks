@@ -3,13 +3,13 @@ package SOCKS;
 import Attachments.BaseAttachment.KeyState;
 import Attachments.CompleteAttachment;
 import Attachments.ConnectionRequestData;
-import Core.Constants;
 import Exceptions.SocksException;
 import Exceptions.SocksException.Classes;
 import Exceptions.SocksException.Types;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class SOCKSv5 {
@@ -111,7 +111,7 @@ public class SOCKSv5 {
         }
         // check 'no auth required' method supporting:
         boolean found = false;
-        for (int i = INIT_MSG_HEADER_SIZE; i < count; i++) {
+        for (int i = INIT_MSG_HEADER_SIZE; i < INIT_MSG_HEADER_SIZE + count; i++) {
             if (data[i] == AUTH_METHOD) {
                 found = true;
                 break;
@@ -184,7 +184,9 @@ public class SOCKSv5 {
     }
     // return int value of port
     private static int getPort(byte b1, byte b2) {
-        return (b1 << Constants.BYTE_SIZE) | b2;
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[]{0x00, 0x00, b1, b2});
+        //return ((0xFF & b1) << Constants.BYTE_SIZE) + (0xFF & b2);
+        return buffer.getInt();
     }
     // write address to response message
     private static void writeAddressToRespMsg(byte[] responseMsg, byte[] addressBytes, byte addressType) {

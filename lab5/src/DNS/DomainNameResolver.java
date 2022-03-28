@@ -2,10 +2,13 @@ package DNS;
 
 import Attachments.CompleteAttachment;
 import Core.Constants.ResolverConstants;
+import Core.Server;
 import Exceptions.ResolverException;
 import Exceptions.ResolverException.Classes;
 import Exceptions.ResolverException.Types;
 import Handlers.HandlerFactory;
+import Logger.LogWriter;
+import Logger.GlobalLogger;
 import org.xbill.DNS.*;
 
 import java.io.IOException;
@@ -24,6 +27,9 @@ import java.util.Set;
  Own thread: send datagrams with domain name resolve requests with pre set time interval
 */
 public class DomainNameResolver extends Thread {
+    private static GlobalLogger exceptionLogger = GlobalLogger.LoggerCreator.getLogger(GlobalLogger.LoggerType.EXCEPTION_LOGGER);
+    private static GlobalLogger workflowLogger = GlobalLogger.LoggerCreator.getLogger(GlobalLogger.LoggerType.WORKFLOW_LOGGER);
+
     // port + channel key
     public static class KeyData {
         public final int port;
@@ -115,24 +121,35 @@ public class DomainNameResolver extends Thread {
                 sendRequests();
                 Thread.sleep(ResolverConstants.REQUESTS_DELTA_TIME);    // Interrupted exception
             } catch (Exception e) {
-                // TODO log fatal exception
+                // stop server log the exception and stop the resolver
+                Server.stop();
+                LogWriter.logException(e, exceptionLogger, "(resolver work)");
+                stopResolver();
             }
         }
     }
-//methods called bt Main Thread:
+//methods called by Main Thread:
     // main method
     public void resolveDomainName(String name, KeyData keyData) throws Exception {
+        LogWriter.logWorkflow("resolving domain name: " + name, workflowLogger);
+
         if (resolvedDomainNameMap.containsKey(name)) {
             String address = resolvedDomainNameMap.get(name);
             assert keyData.key.attachment() instanceof CompleteAttachment;
 
+            LogWriter.logWorkflow(name + " is already resolved: " + address, workflowLogger);
+
             // address is resolved so can establish the connection to remote channel
             CompleteAttachment attachment = (CompleteAttachment) keyData.key.attachment();
-            attachment.setRemoteAddress(AddressGetter.getAddress(address, keyData.port));
 
+            try {attachment.setRemoteAddress(AddressGetter.getAddress(address, keyData.port));}
+            catch (Exception e) {
+                throw new ResolverException(Classes.REQUEST, "unknown host: " + address + " " + keyData.port, Types.UH);
+            }
             HandlerFactory.getConnector().connectToChannel(keyData.key);
         }
         else {
+            LogWriter.logWorkflow(name + " - unresolved yet; wait dns-server response", workflowLogger);
             putUnresolvedItem(name, keyData);
         }
     }
@@ -153,6 +170,8 @@ public class DomainNameResolver extends Thread {
     // parse dns-server response
     public synchronized void parseResponse(byte[] responseData) throws ResolverException {
         try {
+            LogWriter.logWorkflow("parse dns-server response..", workflowLogger);
+
             Message response = new Message(responseData);
             List<Record> answers = response.getSection(Section.ANSWER);
 
@@ -162,9 +181,11 @@ public class DomainNameResolver extends Thread {
             // check is host name has already been resolved
             String hostName = response.getQuestion().getName().toString();
             if (resolvedDomainNameMap.containsKey(hostName)) {
-                return;// just rop datagram
+                LogWriter.logWorkflow(hostName + " already resolved - " + resolvedDomainNameMap.get(hostName), workflowLogger);
+                return;// just drop datagram
             }
             String address = answers.get(0).rdataToString();
+            LogWriter.logWorkflow(hostName + " resolved - " + address, workflowLogger);
 
             // domain name is resolved so connect channels, remove it from 'unresolved' map and add to 'resolved' map:
             connectAllChannels(hostName, address);

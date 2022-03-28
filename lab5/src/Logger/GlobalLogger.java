@@ -1,6 +1,5 @@
 package Logger;
 
-import java.io.IOException;
 import java.util.Calendar;
 import java.util.logging.*;
 
@@ -43,13 +42,15 @@ public class GlobalLogger {
                 logger = Logger.getLogger("ExceptionLogger");
                 logger.setUseParentHandlers(false);
                 // config handler
-                FileHandler handler = null;
+                ConsoleHandler handler = new ConsoleHandler();
+                /*
                 try {
                     handler = new FileHandler("exceptions_%u.log");
                 } catch (IOException e) {
                     e.printStackTrace();
                     System.exit(1);
                 }
+                */
                 handler.setFormatter(new SimpleFormatter());
                 // add handler to logger
                 logger.addHandler(handler);

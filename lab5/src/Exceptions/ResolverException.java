@@ -7,6 +7,7 @@ public class ResolverException extends BaseException {
     }
     public static class Types {
         public static final String FORMAT = "format";
+        public static final String UH = "unknown host";
         public static final String IO = "I/O";
         public static final String CONNECT = "connection";
     }

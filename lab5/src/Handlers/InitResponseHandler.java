@@ -3,6 +3,8 @@ package Handlers;
 import Attachments.BaseAttachment.KeyState;
 import Attachments.CompleteAttachment;
 import Exceptions.HandlerException;
+import Logger.GlobalLogger;
+import Logger.LogWriter;
 import SOCKS.SOCKSv5;
 import Exceptions.HandlerException.Classes;
 import Exceptions.HandlerException.Types;
@@ -14,15 +16,19 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 public class InitResponseHandler implements Handler {
+    private static GlobalLogger workflowLogger = GlobalLogger.LoggerCreator.getLogger(GlobalLogger.LoggerType.WORKFLOW_LOGGER);
+
     @Override
     public void handle(SelectionKey key) throws HandlerException {
+        LogWriter.logWorkflow("sending init response..", workflowLogger);
+
         assert key != null;
         SelectableChannel channel = key.channel();
         assert channel instanceof SocketChannel;
 
         SocketChannel clientChannel = (SocketChannel) channel;
         CompleteAttachment attachment = (CompleteAttachment) key.attachment();
-        ByteBuffer buffer = attachment.getOut();
+        ByteBuffer buffer = attachment.getIn();
 
         // write response to buffer (if don't wrote yet)
         if (!attachment.isRespWroteToBuffer) {
@@ -43,11 +49,19 @@ public class InitResponseHandler implements Handler {
         }
         // change channel state if message wrote
         if (buffer.remaining() <= 0) {
-            attachment.isRespWroteToBuffer = false; // reset flag
-            buffer.clear();
-            // now register key on reading a connection request
-            attachment.setState(KeyState.CONNECT_REQUEST);
-            key.interestOps(SelectionKey.OP_READ);
+            LogWriter.logWorkflow("init response send", workflowLogger);
+
+            if (attachment.getState() == KeyState.INIT_RESPONSE_SUCCESS) {
+                attachment.isRespWroteToBuffer = false; // reset flag
+                buffer.clear();
+                // now register key on reading a connection request
+                attachment.setState(KeyState.CONNECT_REQUEST);
+                key.interestOps(SelectionKey.OP_READ);
+            }
+            else if (attachment.getState() == KeyState.INIT_RESPONSE_FAILED) {
+                throw new HandlerException(Classes.INIT_RESPONSE, "request was invalid, stop the server", Types.FINISH);
+            }
+            else {assert false;}
         }
     }
 }

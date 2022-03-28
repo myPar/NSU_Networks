@@ -2,7 +2,10 @@ package Handlers;
 
 import Attachments.DnsAttachment;
 import DNS.DomainNameResolver;
+import Exceptions.HandlerException;
+import Exceptions.HandlerException.Types;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectableChannel;
@@ -21,8 +24,14 @@ public class DnsResponseHandler implements Handler {
         DnsAttachment attachment = (DnsAttachment) key.attachment();
         ByteBuffer buffer = attachment.getBuffer();
 
-        if (dnsChannel.receive(buffer) == null) {
-            return;                                 // no datagram immediately available
+        // receive the datagram
+        try {
+            if (dnsChannel.receive(buffer) == null) {
+                return;                                 // no datagram immediately available
+            }
+        }
+        catch (IOException e) {
+            throw new HandlerException(HandlerException.Classes.DNS_RESPONSE, "can't receive the datagram", Types.IO);
         }
         buffer.flip();
         byte[] respData = Arrays.copyOfRange(buffer.array(), 0, buffer.limit());

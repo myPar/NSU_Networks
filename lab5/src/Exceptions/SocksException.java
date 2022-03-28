@@ -2,8 +2,8 @@ package Exceptions;
 
 public class SocksException extends BaseException {
     public static class Classes {
-        public static final String INIT_RQST = "Init request";
-        public static final String CONNECT_RQST = "Connection request";
+        public static final String INIT_RQST = "SOCKS: Init request";
+        public static final String CONNECT_RQST = "SOCKS: Connection request";
     }
     public static class Types {
         public static final String FORMAT = "message format";

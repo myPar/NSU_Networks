@@ -1,14 +1,11 @@
 package Exceptions;
 
 public class ServerException extends BaseException {
-    public enum ServerExceptionType {
-        SERVER_START("SERVER_START");
-        private String value;
-        ServerExceptionType(String val) {value = val;}
-
-        public final String getValue() {return value;}
+    public static class Types {
+        public static final String INIT = "Init server";
+        public static final String SELECT = "select channels";
     }
-    public ServerException(ServerExceptionType type, String dscr) {
-        super("server", dscr, type.getValue());
+    public ServerException(String type, String dscr) {
+        super("server", dscr, type);
     }
 }

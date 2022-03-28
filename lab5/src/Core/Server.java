@@ -1,23 +1,20 @@
 package Core;
 
-
 import Attachments.BaseAttachment;
 import Attachments.BaseAttachment.KeyState;
-import Attachments.DnsAttachment;
 import DNS.DomainNameResolver;
 import Exceptions.ServerException;
+import Exceptions.SocksException;
 import Handlers.Handler;
 import Handlers.HandlerFactory;
-import Logger.ExceptionLogger;
 import Logger.GlobalLogger;
+import Logger.LogWriter;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Set;
-//TODO: write exceptions descriptions
-//TODO: write logging
 
 public class Server {
     // get global loggers references:
@@ -41,7 +38,7 @@ public class Server {
     private void initServer() throws ServerException {
         try {
             selector = Selector.open();
-        } catch (IOException e) {throw new ServerException(null, "");}
+        } catch (IOException e) {throw new ServerException(ServerException.Types.INIT, "can't open the selector");}
         initServerSocketChannel();
         initDatagramChannel();
     }
@@ -53,26 +50,26 @@ public class Server {
             serverChannel.register(selector, SelectionKey.OP_ACCEPT, new BaseAttachment(KeyState.ACCEPT));
         }
         catch (IOException e) {
-            ExceptionLogger.logException(e, exceptionLogger);
+            throw new ServerException(ServerException.Types.INIT, "can't init server socket channel");
         }
     }
     private void initDatagramChannel() throws ServerException {
         try {
             DatagramChannel udpChannel = DatagramChannel.open();
             udpChannel.configureBlocking(false);
-            udpChannel.register(selector, SelectionKey.OP_READ, new DnsAttachment(KeyState.DNS_RESPONSE));
-            DomainNameResolver.createResolver(udpChannel);  // init domain name resolver
+            //udpChannel.register(selector, SelectionKey.OP_READ, new DnsAttachment(KeyState.DNS_RESPONSE));
+            //DomainNameResolver.createResolver(udpChannel);  // init domain name resolver
         }
         catch (IOException e) {
-            ExceptionLogger.logException(e, exceptionLogger);
+            throw new ServerException(ServerException.Types.INIT, "can't init datagram channel");
         }
     }
 
     // main handle loop
-    private void handleClients() {
+    private void handleClients() throws Exception {
         while(!Server.stopped) {
             try {
-                if(selector.select() > 0) {
+                if (selector.select() > 0) {
                     Set<SelectionKey> selectedKeys = selector.selectedKeys();
                     Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
 
@@ -81,12 +78,22 @@ public class Server {
                         curKey = keyIterator.next();
                         // remove key from set to prevent handling it twice (selector doesn't remove key by itself)
                         keyIterator.remove();
-                        handle(curKey);
+
+                        // handle current key
+                        try {handle(curKey);}
+                        catch (Exception e) {
+                            if (!(e instanceof SocksException)) {
+                                throw e;    // if not SOCKS exception was thrown: re-throw it
+                            }
+                            else {
+                                LogWriter.logException(e, exceptionLogger, "");
+                            }
+                        }
                     }
                 }
             }
-            catch(Exception e) {
-                ExceptionLogger.logException(e, exceptionLogger);
+            catch(IOException e) {
+                throw new ServerException(ServerException.Types.SELECT, "exception while selector's selection method");
             }
         }
         closeChannels();
@@ -101,15 +108,18 @@ public class Server {
     }
     // close all channels (server interrupt case)
     private void closeChannels() {
+        LogWriter.logWorkflow("close channels and selector..", workflowLogger);
+
         Set<SelectionKey> keys = selector.keys();
-        // close all registered channels:
+        // close all valid channels:
         for (SelectionKey key: keys) {
-            SelectableChannel channel = key.channel();
-            try {
-                channel.close();
-            }
-            catch (IOException e) {
-                ExceptionLogger.logException(e, exceptionLogger);   // TODO log Server exception instead of I/O exception
+            if (key.isValid()) {
+                SelectableChannel channel = key.channel();
+                try {
+                    channel.close();
+                } catch (IOException e) {
+                    LogWriter.logException(e, exceptionLogger, "can't close channel");
+                }
             }
         }
         // close the selector:
@@ -117,13 +127,15 @@ public class Server {
             selector.close();
         }
         catch (IOException e) {
-            ExceptionLogger.logException(e, exceptionLogger);
+            LogWriter.logException(e, exceptionLogger, "can't close selector");
         }
+        LogWriter.logWorkflow("channels and selector are closed", workflowLogger);
     }
 
     // main server start method
     public static void start(int port, GlobalLogger.Mode mode) {
         if (!Server.started) {
+            DomainNameResolver resolver = DomainNameResolver.getResolver();
             Server.started = true;
             Server instance = null;
 
@@ -131,20 +143,30 @@ public class Server {
             try {
                 instance = new Server(port, mode);
             } catch (Exception e) {
-                ExceptionLogger.logException(e, exceptionLogger);
+                LogWriter.logException(e, exceptionLogger, "");
                 System.exit(1);
             }
-            // handle clients:
+            LogWriter.logWorkflow("server started at the port " + port, workflowLogger);
+            // handle clients and start dns resolver:
             try {
+                //resolver.start();
                 instance.handleClients();
             }
             catch (Exception e) {
-                ExceptionLogger.logException(e, exceptionLogger);
+                e.printStackTrace();
+                // stop the resolver; log exception; close the channels
+                //resolver.stopResolver();
+                LogWriter.logException(e, exceptionLogger, "");
                 instance.closeChannels();
-                System.exit(1);
             }
         }
+        // update flags
+        Server.stopped = false;
+        Server.started = false;
     }
     // stopping the server
-    public static void stop() {stopped = true;}
+    public static void stop() {
+        LogWriter.logWorkflow("server stopped", workflowLogger);
+        stopped = true;
+    }
 }
