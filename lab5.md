@@ -24,10 +24,15 @@ ___
 
 ### Components
 __Server__ - Initialize ServerSocketChannel instance wich will be used for accepting new clients. Contains main client handling method - _handleClients()_ where calls _select()_ method and handle channels whose keys were returned by this method.
+
 __HandlerFactory__ - depending on the channel state _getHandler(SelectionKey key)_ method returns corresponding handler as an instance of the _Handler_ interface. For channel's handling - the _handle(SelectionKey key)_ method is invoked.
+
 __SOCKSv5__ - contains constans of SOCKSv5 protocol; also contains methods for parsing and getting the messages data: _InitRequest_, _InitResponse_, _ConnectRequest_ and _ConnectResponse_ messages
+
 __BaseAttachment__ - Base key attachment class. Contains definition of key states (enum) and state field (for object). Using in _getHandler()_ method of ___HandlerFactory___ class. And anywhere where just channel state is needed.
+
 __CompleteAttachment__ - more complex type of attachment. Extended the ___BaseAttachment___ class. Contains input/output ByteBuffer object for sending and receiving data. Also contains link to remote channel. Some info about 'connection request' and dst host address. Needed when keys with states  _ConnectionRequest_, _ConnectionResponse_, _Proxying_ and _FinishConnection_ are handled.
+
 __Handler__ - interface which contains only one method - _handle(SelectionKey)_. Handlers of all types are implement it.
 ___
 <a href="https://ibb.co/6tDbNzf"><img src="https://i.ibb.co/qgm9xKP/uml.png" alt="uml" border="0"></a><br /><a target='_blank' href='https://ru.imgbb.com/'></a><br />
