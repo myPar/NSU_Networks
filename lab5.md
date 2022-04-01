@@ -1,6 +1,6 @@
 # lab5 - SOCKSv5 Proxy
 ## Lab Description
-_Proxy server of standart SOCKS (version 5) which supports one command - "establish a TCP/IP stream connection". Handling of several clients is implemented using default Java-API (see: Selector, SelectionKey, SelectableChannel etc. in Java API references)._
+This project implements a proxy server based on SOCKS5 v5 protocol, which can serve multiple clients and which supports a single command "establish a TCP/IP stream connection". Implementation uses standard Java APIs wherever possible and appropriate - Selector, SelectionKey, SelectableChannel etc. 
 
 ### Proxying
 A little about proxying:
